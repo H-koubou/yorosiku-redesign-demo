@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Before / After｜あおぞら予ろシク リデザイン提案</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { background: var(--surface-2); }
+  .hero { background: linear-gradient(150deg,#0c2722,#0a201c 55%,#0e3a30); color:#fff; padding:56px 32px 64px; }
+  .hero-in { max-width:1120px; margin:0 auto; }
+  .hero .eyebrow { color:var(--accent); font-weight:700; font-size:13px; letter-spacing:.08em; }
+  .hero h1 { font-size:34px; line-height:1.25; letter-spacing:-.02em; margin:10px 0 12px; }
+  .hero p { color:#a9c2b9; font-size:15px; max-width:60ch; }
+  .wrap { max-width:1120px; margin:0 auto; padding:36px 32px 72px; }
+  .cmp { background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow-1); padding:24px; margin-bottom:26px; }
+  .cmp h2 { font-size:20px; margin-bottom:4px; } .cmp .lead { color:var(--muted); font-size:13.5px; margin-bottom:18px; }
+  .ba { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+  .pane .tag { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; padding:4px 11px; border-radius:999px; margin-bottom:9px; }
+  .tag.before { background:var(--neutral-soft); color:var(--neutral-ink); } .tag.after { background:var(--brand-soft); color:var(--brand-ink); }
+  .shot { border:1px solid var(--line-strong); border-radius:10px; overflow:hidden; background:var(--surface-2); }
+  .shot .bar { height:26px; background:linear-gradient(var(--surface-3),var(--surface-2)); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:5px; padding:0 10px; }
+  .shot .bar i { width:9px; height:9px; border-radius:50%; background:var(--line-strong); }
+  .shot img { display:block; width:100%; }
+  .phonewrap { display:flex; justify-content:center; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:10px; padding:14px; }
+  .phonewrap img { width:248px; border-radius:22px; border:6px solid #14231f; box-shadow:var(--shadow-2); }
+  .pts { margin:16px 0 0; padding:0; list-style:none; display:grid; gap:8px; }
+  .pts li { display:flex; gap:9px; font-size:13.5px; color:var(--ink-2); }
+  .pts .ic { color:var(--brand); flex:none; margin-top:2px; }
+  .pts.bad .ic { color:var(--muted); }
+  .feat { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .feat .f { background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .feat .f .fi { width:38px;height:38px;border-radius:10px;background:var(--brand);color:#fff;display:grid;place-items:center;margin-bottom:10px; }
+  .feat .f h4 { font-size:15px; margin-bottom:4px; } .feat .f p { font-size:12.5px; color:var(--muted); }
+  table.est { width:100%; border-collapse:collapse; font-size:13.5px; }
+  table.est th, table.est td { border-bottom:1px solid var(--line); padding:12px 12px; text-align:left; vertical-align:top; }
+  table.est th { background:var(--surface-2); font-size:12px; color:var(--muted); }
+  table.est .price { font-family:var(--mono); font-weight:700; white-space:nowrap; }
+  .note { font-size:12px; color:var(--muted); margin-top:12px; }
+  @media (max-width:760px){ .ba{grid-template-columns:1fr} .feat{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+  <header class="hero"><div class="hero-in">
+    <div class="eyebrow">BEFORE → AFTER</div>
+    <h1>機能はそのまま。<br>“使いやすさ”だけを作り替えました。</h1>
+    <p>あおぞら予ろシクの現行画面と、リデザイン版の比較です。項目・操作は一切増減せず、情報の優先順位づけ・状態の可視化・入力の構造化だけを行いました。</p>
+  </div></header>
+
+  <div class="wrap">
+
+    <!-- 申請一覧 -->
+    <div class="cmp">
+      <h2>① 申請一覧（管理者）</h2>
+      <p class="lead">毎日いちばん使う「申請を捌く」画面。現行は横長テーブル、リデザインは“処理キュー”に。</p>
+      <div class="ba">
+        <div class="pane">
+          <span class="tag before"><span class="dot" style="width:7px;height:7px;border-radius:50%;background:currentColor"></span>現行</span>
+          <div class="shot" style="min-height:230px;display:grid;place-items:center;text-align:center;padding:24px"><div><div style="font-size:13px;font-weight:700;color:var(--ink-2)">現行画面</div><div class="hint" style="margin-top:6px">実データを含むため公開版では非掲載。<br>商談時にローカルでご提示します。</div></div></div>
+          <ul class="pts bad">
+            <li><span class="ic">—</span>11列が横並びで、見るべき順・優先度が伝わりにくい</li>
+            <li><span class="ic">—</span>状態が文字中心で、ひと目の判別が難しい</li>
+            <li><span class="ic">—</span>主操作（承認）が他の操作に埋もれる</li>
+          </ul>
+        </div>
+        <div class="pane">
+          <span class="tag after">✓ リデザイン</span>
+          <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="compare/after-apply.png" alt="リデザインの申請一覧"></div>
+          <ul class="pts">
+            <li><span class="ic">✓</span>“処理すべき順”のキュー＋上部に件数サマリ</li>
+            <li><span class="ic">✓</span>状態を色付きバッジで即判別／タブで絞り込み</li>
+            <li><span class="ic">✓</span>主操作（承認）を右に固定・行クリックで詳細</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 予約者カレンダー -->
+    <div class="cmp">
+      <h2>② 予約者（運搬業者）の画面</h2>
+      <p class="lead">現行はPCの月カレンダー。リデザインは現場で使う<strong>スマホアプリ（PWA）</strong>に。</p>
+      <div class="ba">
+        <div class="pane">
+          <span class="tag before"><span style="width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block"></span>現行</span>
+          <div class="shot" style="min-height:230px;display:grid;place-items:center;text-align:center;padding:24px"><div><div style="font-size:13px;font-weight:700;color:var(--ink-2)">現行画面</div><div class="hint" style="margin-top:6px">実データを含むため公開版では非掲載。<br>商談時にローカルでご提示します。</div></div></div>
+          <ul class="pts bad">
+            <li><span class="ic">—</span>受付終了・残数が文字の羅列で、満枠が直感的でない</li>
+            <li><span class="ic">—</span>自分の予約状況を見つけにくい</li>
+            <li><span class="ic">—</span>PC前提でスマホでの操作が大変</li>
+          </ul>
+        </div>
+        <div class="pane">
+          <span class="tag after">✓ リデザイン（PWA）</span>
+          <div class="phonewrap"><img src="compare/after-hauler.png" alt="リデザインの予約者アプリ" loading="lazy"></div>
+          <ul class="pts">
+            <li><span class="ic">✓</span>営業状態を色で、車両・畳の受入残をチップで表示</li>
+            <li><span class="ic">✓</span>自社の申請（変更/取消）をバッジ表示・タップで申請</li>
+            <li><span class="ic">✓</span>ホーム画面に追加してアプリ起動・オフライン対応</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新機能 -->
+    <div class="cmp">
+      <h2>③ 新しくできること（現行にない価値）</h2>
+      <p class="lead">現行機能を保ったうえで、運用が大きく軽くなる仕組みを追加できます。</p>
+      <div class="feat">
+        <div class="f"><div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" width="20" height="20"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></div>
+          <h4>双方向プッシュ通知</h4><p>新規申請は施設へ、承認・確認依頼は業者へ即通知。アプリ未起動でも届きます。</p></div>
+        <div class="f"><div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" width="20" height="20"><path d="M21 11.5a8 8 0 01-11.5 7.2L3 21l2.3-6.5A8 8 0 1121 11.5z"/></svg></div>
+          <h4>施設 ⇄ 業者チャット</h4><p>予約や搬入の確認を電話に頼らずその場で。やりとりが記録に残ります。</p></div>
+        <div class="f"><div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" width="20" height="20"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+          <h4>アプリ（PWA）化</h4><p>ストア不要でインストール、オフライン表示、更新は即反映。PC・スマホ共通。</p></div>
+      </div>
+    </div>
+
+    <!-- 見積 -->
+    <div class="cmp">
+      <h2>④ 進め方と概算（提案用）</h2>
+      <p class="lead">いきなり全部ではなく、まず有料の要件定義で“現行機能の確定”から。リスクを抑えて進めます。</p>
+      <table class="est">
+        <thead><tr><th style="width:34px"></th><th>ステップ</th><th>内容</th><th>目安（税別）</th><th>期間</th></tr></thead>
+        <tbody>
+          <tr><td class="price">1</td><td>要件定義・画面設計</td><td>現行機能の棚卸し、項目・権限の確定、画面仕様の合意</td><td class="price">¥30〜60万</td><td>2〜3週</td></tr>
+          <tr><td class="price">2</td><td>フロント実装（全画面）</td><td>管理コンソール＋予約者PWAのUI実装（このデモの作り込み）</td><td class="price">¥120〜220万</td><td>6〜10週</td></tr>
+          <tr><td class="price">3</td><td>通知・チャット基盤</td><td>Web Push（VAPID）、施設⇄業者メッセージ</td><td class="price">¥40〜80万</td><td>2〜4週</td></tr>
+          <tr><td class="price">4</td><td>既存連携・データ移行</td><td>現行DB／業務との接続（現状調査のうえ個別見積）</td><td class="price">別途</td><td>—</td></tr>
+          <tr><td class="price">5</td><td>運用・保守</td><td>ホスティング、改善対応、問い合わせ</td><td class="price">月 ¥3〜8万</td><td>継続</td></tr>
+        </tbody>
+      </table>
+      <p class="note">※ 概算レンジです。配車管理システムは別システムのため別途お見積り。本番のプッシュ通知・インストールには独自ドメインのHTTPS（SSL）が必要です。</p>
+    </div>
+
+    <div style="text-align:center"><a class="btn btn-primary btn-lg" href="index.html">← 画面ツアーに戻る</a></div>
+  </div>
+</body>
+</html>

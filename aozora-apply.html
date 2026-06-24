@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>申請一覧｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="apply" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="申請一覧" data-date="2026-06-24 (水)">
+  <main class="main">
+    <div class="page">
+      <div class="page-head">
+        <h1 class="page-title">申請一覧</h1>
+        <p class="page-sub">運搬業者からの搬入申請を、処理すべき順に。クリックで詳細・承認。</p>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="toolbar">
+        <div class="tabs" id="tabs">
+          <button class="tab is-active" data-f="all">すべて</button>
+          <button class="tab" data-f="request">確認依頼 <span class="count" id="cReq">0</span></button>
+          <button class="tab" data-f="change">変更申請 <span class="count" id="cChg">0</span></button>
+        </div>
+        <div class="grow"></div>
+        <input class="input" style="max-width:220px" placeholder="運搬業者・予約者で検索" aria-label="検索">
+        <select class="select" style="max-width:170px" aria-label="品目で絞り込み" id="wfilter"></select>
+        <a class="btn btn-primary" href="aozora-add.html"><span style="width:16px;height:16px;display:inline-flex"></span>新規搬入予約</a>
+        <button class="btn" id="excelBtn">Excel 出力</button>
+      </div>
+
+      <div class="card card-pad">
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>搬入予定</th><th>状態</th><th>運搬業者 / 排出事業者</th><th>排出事業場</th>
+              <th>品目</th><th>車種・台数</th><th>申請者 / 申請日時</th><th class="col-actions">操作</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  const Q = DATA.applyQueue.map(r => ({ ...r }));
+  let filter = "all";
+
+  const wf = document.getElementById("wfilter");
+  wf.innerHTML = `<option value="">品目（すべて）</option>` + DATA.WASTE.map(w => `<option>${w}</option>`).join("");
+
+  function counts() {
+    return {
+      pending: Q.filter(r => r.status !== "fixed").length,
+      request: Q.filter(r => r.status === "request").length,
+      change:  Q.filter(r => r.status === "change").length,
+      done:    DATA.confirmed.length + Q.filter(r => r.status === "fixed").length,
+    };
+  }
+
+  function renderStats() {
+    const c = counts();
+    document.getElementById("stats").innerHTML = `
+      <div class="stat is-warn"><div class="stat-label">承認待ち</div><div class="stat-num num">${c.pending}<small> 件</small></div></div>
+      <div class="stat is-warn"><div class="stat-label">うち確認依頼中</div><div class="stat-num num">${c.request}<small> 件</small></div></div>
+      <div class="stat is-brand"><div class="stat-label">変更申請</div><div class="stat-num num">${c.change}<small> 件</small></div></div>
+      <div class="stat is-ok"><div class="stat-label">本日 確定済</div><div class="stat-num num">${c.done}<small> 件</small></div></div>`;
+    document.getElementById("cReq").textContent = c.request;
+    document.getElementById("cChg").textContent = c.change;
+  }
+
+  function rowHtml(r) {
+    const carInfo = `${r.car}<span class="td-sub"> ×${r.units}台${r.tatami ? ` ・畳${r.tatami}枚` : ""}</span>`;
+    const dim = r.status === "fixed" ? ' style="opacity:.5"' : "";
+    return `<tr data-id="${r.id}"${dim}>
+      <td><div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div></td>
+      <td>${UI.pill(r.status)}</td>
+      <td><div class="cell-stack"><span class="td-strong">${r.carrier}</span><span class="td-sub">${r.emitter}</span></div></td>
+      <td>${r.site}</td>
+      <td style="max-width:200px">${UI.waste(r.waste)}</td>
+      <td class="td-mono">${carInfo}</td>
+      <td><div class="cell-stack"><span>${r.by}</span><span class="td-sub mono">${r.at}</span></div></td>
+      <td class="col-actions"><div class="row-actions">
+        ${r.status === "fixed"
+          ? `<span class="pill pill-ok"><span class="dot"></span>承認済</span>`
+          : `<button class="btn btn-ok btn-sm" data-act="approve">承認</button>
+             <button class="btn btn-warn btn-sm" data-act="req">確認依頼</button>
+             <button class="btn btn-ghost btn-sm" data-act="edit">編集</button>`}
+      </div></td>
+    </tr>`;
+  }
+
+  function render() {
+    const list = Q.filter(r => filter === "all" ? true : r.status === filter);
+    document.getElementById("rows").innerHTML = list.length
+      ? list.map(rowHtml).join("")
+      : `<tr><td colspan="8"><div class="empty"><div class="empty-ico">${ICONS.check}</div><h3>未処理の申請はありません</h3><p>このタブの申請はすべて処理済みです。</p></div></td></tr>`;
+    renderStats();
+  }
+
+  function approve(id) {
+    const r = Q.find(x => x.id === id); if (!r) return;
+    r.status = "fixed";
+    render();
+    toast(`${r.carrier} の ${r.date.slice(5)} ${r.ampm} 搬入を承認しました`, "ok");
+    if (window.BUS) BUS.post("approved", { carrier: r.carrier, date: r.date, ampm: r.ampm, waste: r.waste, car: r.car, units: r.units }); // → 予約者アプリへ通知
+  }
+
+  function detail(r) {
+    return `<div class="drawer-head">
+        <div style="flex:1"><div class="tb-crumb">搬入申請</div>
+          <h2 style="font-size:18px;margin-top:2px">${r.carrier}</h2>
+          <div style="margin-top:8px">${UI.pill(r.status)}</div></div>
+        <button class="icon-btn" data-close aria-label="閉じる">${ICONS.x}</button>
+      </div>
+      <div class="drawer-body">
+        <dl class="dl">
+          <dt>搬入予定</dt><dd class="mono">${r.date}（${r.ampm}）</dd>
+          <dt>排出事業者</dt><dd>${r.emitter}</dd>
+          <dt>排出事業場</dt><dd>${r.site}</dd>
+          <dt>産廃種類</dt><dd>${UI.waste(r.waste)}</dd>
+          ${r.tatami ? `<dt>畳の枚数</dt><dd class="mono">${r.tatami} 枚</dd>` : ""}
+          <dt>車種・台数</dt><dd class="mono">${r.car} ×${r.units}台</dd>
+          <dt>特記事項</dt><dd>${r.note || "—"}</dd>
+          <dt>申請者</dt><dd>${r.by}</dd>
+          <dt>申請日時</dt><dd class="mono">2026-${r.at}</dd>
+        </dl>
+        <div class="divider"></div>
+        <div class="hint">承認すると運搬業者へ確定通知が送られます（現行機能と同等）。</div>
+      </div>
+      <div class="drawer-foot">
+        ${r.status === "fixed"
+          ? `<span class="pill pill-ok" style="align-self:center"><span class="dot"></span>承認済み</span>`
+          : `<button class="btn btn-ok" style="flex:1" data-act="approve" data-id="${r.id}">承認する</button>
+             <button class="btn btn-warn" data-act="req" data-id="${r.id}">確認依頼</button>
+             <button class="btn btn-ghost">編集</button>`}
+      </div>`;
+  }
+
+  document.getElementById("rows").addEventListener("click", e => {
+    const tr = e.target.closest("tr[data-id]"); if (!tr) return;
+    const id = tr.dataset.id, btn = e.target.closest("[data-act]");
+    if (btn) {
+      e.stopPropagation();
+      if (btn.dataset.act === "approve") approve(id);
+      else if (btn.dataset.act === "req") toast("確認依頼を運搬業者へ送信しました", "default");
+      else toast("編集画面へ（デモ）", "default");
+      return;
+    }
+    openDrawer(detail(Q.find(x => x.id === id)));
+  });
+
+  document.addEventListener("click", e => {
+    const b = e.target.closest("#eqDrawer [data-act]"); if (!b) return;
+    if (b.dataset.act === "approve") { approve(b.dataset.id); closeDrawer(); }
+    else if (b.dataset.act === "req") { toast("確認依頼を送信しました", "default"); closeDrawer(); }
+  });
+
+  document.getElementById("tabs").addEventListener("click", e => {
+    const t = e.target.closest(".tab"); if (!t) return;
+    document.querySelectorAll("#tabs .tab").forEach(x => x.classList.remove("is-active"));
+    t.classList.add("is-active"); filter = t.dataset.f; render();
+  });
+
+  document.getElementById("excelBtn").addEventListener("click", () => toast("申請一覧を Excel に出力しました", "ok"));
+
+  // 予約者アプリからの新着申請を即時反映（app.js が dispatch）
+  document.addEventListener("apply-incoming", e => {
+    const p = e.detail;
+    Q.unshift({ id: "a" + Date.now(), date: p.date, ampm: p.ampm, carrier: p.carrier, emitter: p.emitter || "—",
+      site: p.site || "—", waste: p.waste || [], tatami: p.tatami || null, car: p.car, units: p.units, note: p.note || "", by: p.by || p.carrier, at: "たった今", status: "new" });
+    filter = "all";
+    document.querySelectorAll("#tabs .tab").forEach(x => x.classList.remove("is-active"));
+    const allTab = document.querySelector('#tabs .tab[data-f="all"]'); if (allTab) allTab.classList.add("is-active");
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

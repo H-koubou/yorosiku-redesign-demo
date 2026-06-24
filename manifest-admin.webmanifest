@@ -1,0 +1,17 @@
+{
+  "id": "/yorosiku-admin",
+  "name": "あおぞら予ろシク 管理",
+  "short_name": "予ろシク管理",
+  "description": "搬入予約の承認・確認依頼・取消・チャットを管理する施設向けコンソール。",
+  "start_url": "./aozora-home.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c2722",
+  "theme_color": "#0c2722",
+  "lang": "ja",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

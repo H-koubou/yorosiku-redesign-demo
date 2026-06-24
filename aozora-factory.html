@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工場マスター｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .fac-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; }
+  .cap-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0; }
+  .cap-box { background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:11px 13px; }
+  .cap-box .k { font-size:11px; color:var(--muted); }
+  .cap-box .v { font-family:var(--mono); font-size:22px; font-weight:700; }
+  .cap-box .v small { font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="factory" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="工場マスター" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page">
+    <div class="page-head flex between">
+      <div><h1 class="page-title">工場マスター</h1><p class="page-sub">受入枠の上限・営業時間・受入品目を設定します。カレンダーの残数はここの上限を基準に計算されます。</p></div>
+      <button class="btn btn-primary" onclick="toast('工場の追加へ（デモ）','default')">＋ 工場を追加</button>
+    </div>
+    <div class="fac-grid" id="grid"></div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+document.getElementById("grid").innerHTML = DATA.factories.map(f => `
+  <div class="card"><div class="card-head">
+      <div style="flex:1"><div class="card-title">${f.name}</div><div class="td-sub">${f.area}・${f.hours}</div></div>
+      <span class="pill pill-ok"><span class="dot"></span>稼働中</span></div>
+    <div class="card-body">
+      <div class="cap-row">
+        <div class="cap-box"><div class="k">AM 受入上限</div><div class="v">${f.capAM}<small> 台/枠</small></div></div>
+        <div class="cap-box"><div class="k">PM 受入上限</div><div class="v">${f.capPM}<small> 台/枠</small></div></div>
+      </div>
+      <div class="label" style="margin-bottom:8px">受入可能な品目</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${UI.waste(f.wastes)}</div>
+      <div class="divider"></div>
+      <div class="flex"><button class="btn btn-sm" onclick="toast('工場設定を編集（デモ）','default')">設定を編集</button>
+        <button class="btn btn-ghost btn-sm" onclick="toast('受入カレンダーへ（デモ）','default')">受入カレンダー</button></div>
+    </div></div>`).join("");
+</script>
+</body></html>

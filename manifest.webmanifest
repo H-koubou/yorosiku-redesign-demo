@@ -1,0 +1,18 @@
+{
+  "id": "/yorosiku-hauler",
+  "name": "あおぞら予ろシク 運搬業者ポータル",
+  "short_name": "予ろシク",
+  "description": "あおぞらへの産廃搬入予約をスマホから。空き枠の確認・申請・チャットまで。",
+  "start_url": "./hauler-home.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c2722",
+  "theme_color": "#0c2722",
+  "lang": "ja",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

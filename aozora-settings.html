@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>設定｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="settings" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="設定" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">設定</h1><p class="page-sub">会社情報・受入枠の既定・通知の設定。</p></div>
+    <div style="max-width:760px">
+      <form class="card" onsubmit="return false">
+        <div class="card-body">
+          <div class="form-section">
+            <div class="form-section-title"><span class="n">1</span>会社情報</div>
+            <div class="form-grid">
+              <div class="field"><label class="label">会社名 <span class="req">必須</span></label><input class="input" value="株式会社あおぞら"></div>
+              <div class="field"><label class="label">担当者 <span class="opt">任意</span></label><input class="input" value="管理者"></div>
+              <div class="field"><label class="label">電話番号 <span class="opt">任意</span></label><input class="input mono" value="03-0000-0000"></div>
+              <div class="field"><label class="label">通知メール <span class="req">必須</span></label><input class="input mono" value="office@example.com"></div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="form-section">
+            <div class="form-section-title"><span class="n">2</span>受入枠の既定上限</div>
+            <p class="hint" style="margin-bottom:14px">工場マスター未設定時に適用される、1枠あたりの受入台数の既定値です。</p>
+            <div class="form-grid">
+              <div class="field"><label class="label">AM 受入上限</label><div class="input-affix"><input class="input num" type="number" value="12"><span class="suffix">台/枠</span></div></div>
+              <div class="field"><label class="label">PM 受入上限</label><div class="input-affix"><input class="input num" type="number" value="12"><span class="suffix">台/枠</span></div></div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="form-section">
+            <div class="form-section-title"><span class="n">3</span>通知</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <label class="check"><input type="checkbox" checked> 新規の搬入申請をメールで通知する</label>
+              <label class="check"><input type="checkbox" checked> 取消申請をメールで通知する</label>
+              <label class="check"><input type="checkbox"> 満枠の枠への申請があったときに警告する</label>
+            </div>
+          </div>
+        </div>
+        <div class="drawer-foot" style="border-radius:0 0 var(--r-lg) var(--r-lg)">
+          <button class="btn btn-primary" onclick="toast('設定を保存しました','ok')">変更を保存</button>
+          <button class="btn btn-ghost">取り消す</button>
+        </div>
+      </form>
+    </div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+</body></html>

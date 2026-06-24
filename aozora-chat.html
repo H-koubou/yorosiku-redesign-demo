@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>チャット｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .chatwrap { display:grid; grid-template-columns:330px 1fr; height:calc(100vh - 60px - 48px); min-height:520px;
+    border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow-1); }
+  .cl { border-right:1px solid var(--line); overflow-y:auto; }
+  .cl-row { display:flex; gap:12px; align-items:center; padding:14px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .cl-row:hover { background:var(--surface-2); } .cl-row.active { background:var(--brand-soft); }
+  .cl-ava { width:42px; height:42px; border-radius:50%; background:var(--brand-soft); color:var(--brand-ink); display:grid; place-items:center; font-weight:700; flex:none; }
+  .cl-row.active .cl-ava { background:var(--brand); color:#fff; }
+  .cl-b { flex:1; min-width:0; } .cl-b .t { font-weight:700; font-size:13.5px; display:flex; justify-content:space-between; gap:8px; }
+  .cl-b .t .tm { font-size:11px; color:var(--muted); font-weight:500; }
+  .cl-b .p { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cl-unread { background:var(--bad); color:#fff; font-size:10px; font-weight:800; min-width:18px; height:18px; border-radius:9px; display:grid; place-items:center; padding:0 5px; }
+  .thr { display:flex; flex-direction:column; min-width:0; }
+  .thr-head { padding:14px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; }
+  .thr-scroll { flex:1; overflow-y:auto; padding:20px; background:var(--surface-2); display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:62%; padding:10px 13px; border-radius:16px; font-size:13.5px; line-height:1.5; }
+  .msg .mt { font-size:10px; margin-top:4px; opacity:.7; }
+  .msg.them { align-self:flex-start; background:var(--surface); border:1px solid var(--line); border-bottom-left-radius:5px; }
+  .msg.me { align-self:flex-end; background:linear-gradient(135deg,#0e7c66,#0d7a64); color:#fff; border-bottom-right-radius:5px; }
+  .msg.me .mt { text-align:right; }
+  .composer-d { display:flex; gap:10px; padding:12px 16px; border-top:1px solid var(--line); }
+  .composer-d textarea { flex:1; resize:none; border:1px solid var(--line-strong); border-radius:12px; padding:9px 13px; font:inherit; font-size:14px; max-height:90px; }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="chat" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="チャット" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page" style="padding-bottom:0">
+    <div class="page-head"><h1 class="page-title">チャット</h1><p class="page-sub">運搬業者とのやりとり。予約や搬入の確認をその場で。</p></div>
+    <div class="chatwrap">
+      <div class="cl" id="cl"></div>
+      <div class="thr">
+        <div class="thr-head" id="thrHead"></div>
+        <div class="thr-scroll" id="scroll"></div>
+        <div class="composer-d">
+          <textarea id="input" rows="1" placeholder="メッセージを入力（事務局として返信）"></textarea>
+          <button class="btn btn-primary" id="send">送信</button>
+        </div>
+      </div>
+    </div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const T = DATA.chatThreads; let cur = T[0];
+  function initial(name){ return name.replace(/^(株式会社|有限会社)/,"").charAt(0); }
+  function renderList() {
+    document.getElementById("cl").innerHTML = T.map(t => `
+      <div class="cl-row ${t===cur?'active':''}" data-id="${t.id}">
+        <div class="cl-ava">${initial(t.carrier)}</div>
+        <div class="cl-b"><div class="t"><span>${t.carrier}</span><span class="tm">${t.at}</span></div>
+          <div class="p">${t.messages[t.messages.length-1].text}</div></div>
+        ${t.unread?`<span class="cl-unread">${t.unread}</span>`:""}
+      </div>`).join("");
+  }
+  function renderThread() {
+    document.getElementById("thrHead").innerHTML = `<div class="cl-ava">${initial(cur.carrier)}</div>
+      <div><div style="font-weight:700">${cur.carrier}</div><div class="td-sub">${cur.contact}</div></div>`;
+    const sc = document.getElementById("scroll");
+    sc.innerHTML = cur.messages.map(m => `<div class="msg ${m.from==='office'?'me':'them'}">${m.text}<div class="mt">${m.at}</div></div>`).join("");
+    sc.scrollTop = sc.scrollHeight;
+  }
+  function open(t){ cur = t; t.unread = 0; renderList(); renderThread(); }
+  document.getElementById("cl").addEventListener("click", e => { const r=e.target.closest("[data-id]"); if(r) open(T.find(t=>t.id===r.dataset.id)); });
+  document.getElementById("send").addEventListener("click", () => {
+    const i = document.getElementById("input"); const v = i.value.trim(); if(!v) return;
+    cur.messages.push({ from:"office", text:v, at:"たった今" }); cur.at="たった今"; i.value=""; renderThread(); renderList();
+    toast("メッセージを送信しました", "ok");
+    if (window.BUS) BUS.post("chat-office", { text: v });   // → 予約者アプリへ
+  });
+  // 運搬業者からの新着メッセージを受信（サンプル建材スレッドへ）
+  if (window.BUS) BUS.on("chat-carrier", (p) => {
+    const t = T.find(x => x.carrier === "サンプル建材株式会社") || T[0];
+    t.messages.push({ from: "carrier", text: p.text, at: "たった今" }); t.at = "たった今";
+    if (t !== cur) t.unread = (t.unread || 0) + 1;
+    renderList(); if (t === cur) renderThread();
+  });
+  renderList(); renderThread();
+})();
+</script>
+</body>
+</html>

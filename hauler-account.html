@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+<title>アカウント｜あおぞら予ろシク</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/pwa.css">
+<style>
+  .acc-head { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+  .acc-ava { width:56px; height:56px; border-radius:16px; background:linear-gradient(135deg,#2bb89a,#0d7a64); color:#fff; display:grid; place-items:center; font-size:22px; font-weight:800; }
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line); }
+  .toggle-row:last-child { border-bottom:0; }
+  .sw { width:44px; height:26px; border-radius:13px; background:var(--line-strong); position:relative; cursor:pointer; transition:background .15s; flex:none; }
+  .sw.on { background:var(--brand); } .sw::after { content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+  .sw.on::after { left:21px; }
+  .row-link { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .row-link:last-child { border-bottom:0; }
+</style>
+</head>
+<body class="pwa-body">
+  <div class="pwa" data-screen="account" data-title="アカウント" data-sub="サンプル建材株式会社">
+    <main class="pwa-content">
+      <div class="acc-head">
+        <div class="acc-ava">鷹</div>
+        <div><div style="font-weight:800;font-size:17px">サンプル建材株式会社</div><div class="td-sub">山田 太郎 ・ user@example.com</div></div>
+      </div>
+
+      <!-- 通知バナー（未許可時） -->
+      <div class="banner" id="pushBanner" style="display:none">
+        <div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" width="20" height="20"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></div>
+        <div class="bt"><div class="t">通知をオンにしましょう</div><div class="s">承認・確認依頼・メッセージをすぐ受け取れます。</div></div>
+        <button class="btn btn-sm" id="enablePush">オンにする</button>
+      </div>
+
+      <div class="m-card">
+        <div class="form-section-title" style="border:0;padding:0;margin-bottom:6px"><span class="n">1</span>通知</div>
+        <div class="flex between" style="padding:6px 0 10px"><span class="td-sub">プッシュ通知の状態</span><span id="pushState" class="pill pill-neutral">確認中…</span></div>
+        <div class="flex" style="gap:8px;margin-bottom:6px">
+          <button class="btn btn-primary btn-sm" id="enablePush2">通知をオンにする</button>
+          <button class="btn btn-sm" id="testPush">テスト通知を送る</button>
+        </div>
+        <div class="divider"></div>
+        <div class="toggle-row"><span>予約の承認・確定</span><div class="sw on" data-sw></div></div>
+        <div class="toggle-row"><span>確認依頼・却下</span><div class="sw on" data-sw></div></div>
+        <div class="toggle-row"><span>事務局からのメッセージ</span><div class="sw on" data-sw></div></div>
+        <div class="toggle-row"><span>お知らせ</span><div class="sw" data-sw></div></div>
+      </div>
+
+      <div class="m-card" id="installCard" style="display:none">
+        <div class="form-section-title" style="border:0;padding:0;margin-bottom:8px"><span class="n">2</span>アプリとして使う</div>
+        <p class="hint" style="margin-bottom:10px">ホーム画面に追加すると、アプリのように全画面で素早く開けます（オフラインでも予約内容を確認可能）。</p>
+        <button class="btn btn-primary" id="installBtn">ホーム画面に追加</button>
+      </div>
+
+      <div class="m-card">
+        <div class="form-section-title" style="border:0;padding:0;margin-bottom:4px"><span class="n">3</span>会社情報</div>
+        <div class="row-link" onclick="toast('編集（デモ）','default')"><span>担当者・連絡先</span><span class="td-sub">山田 太郎 ›</span></div>
+        <div class="row-link" onclick="toast('パスワード変更（デモ）','default')"><span>パスワードの変更</span><span class="td-sub">›</span></div>
+        <div class="row-link" onclick="location.href='hauler-login.html'"><span style="color:var(--bad-ink)">ログアウト</span><span class="td-sub">›</span></div>
+      </div>
+      <p class="hint" style="text-align:center">あおぞら予ろシク 運搬業者ポータル ／ v3.0</p>
+    </main>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/pwa.js"></script>
+  <script>
+  (function () {
+    // トグル
+    document.querySelectorAll("[data-sw]").forEach(s => s.addEventListener("click", () => s.classList.toggle("on")));
+
+    // 通知状態表示
+    function paintState() {
+      const st = window.notifState();
+      const map = { granted:["pill-ok","オン"], denied:["pill-bad","ブロック中"], default:["pill-warn","未設定"], unsupported:["pill-neutral","未対応"] };
+      const [cls,label] = map[st] || map.default;
+      const e = document.getElementById("pushState"); e.className = "pill " + cls; e.innerHTML = `<span class="dot"></span>${label}`;
+      document.getElementById("pushBanner").style.display = (st === "default") ? "flex" : "none";
+    }
+    paintState();
+    async function enable() { await window.requestPush(); paintState(); }
+    document.getElementById("enablePush").addEventListener("click", enable);
+    document.getElementById("enablePush2").addEventListener("click", enable);
+    document.getElementById("testPush").addEventListener("click", () => {
+      if (window.notifState() !== "granted") { toast("先に通知をオンにしてください", "bad"); return; }
+      window.pwaNotify("予約が承認されました", "6/26 AM 紙くず ×1台 が確定しました。", "hauler-book.html", "approved");
+      toast("テスト通知を送りました", "ok");
+    });
+
+    // PWAインストール
+    let deferred = null;
+    window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; document.getElementById("installCard").style.display = "block"; });
+    document.getElementById("installBtn").addEventListener("click", async () => {
+      if (deferred) { deferred.prompt(); await deferred.userChoice; deferred = null; document.getElementById("installCard").style.display = "none"; toast("インストールを開始しました", "ok"); }
+      else toast("ブラウザのメニューから「ホーム画面に追加」を選んでください", "default");
+    });
+    // iOS等で beforeinstallprompt が出ない場合も導線を見せる
+    if (!window.matchMedia("(display-mode: standalone)").matches) document.getElementById("installCard").style.display = "block";
+  })();
+  </script>
+</body>
+</html>

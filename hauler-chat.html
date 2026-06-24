@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+<title>あおぞら事務局｜あおぞら予ろシク</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/pwa.css">
+</head>
+<body class="pwa-body">
+  <div class="pwa" data-screen="chat" data-title="あおぞら事務局" data-sub="通常1営業日以内に返信" data-back="hauler-home.html">
+    <main class="pwa-content flush">
+      <div class="chat">
+        <div class="chat-scroll" id="scroll" style="padding-bottom:80px"></div>
+      </div>
+    </main>
+  </div>
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="メッセージを入力" aria-label="メッセージ"></textarea>
+    <button class="send-btn" id="send" aria-label="送信"></button>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/pwa.js"></script>
+  <script>
+  (function () {
+    document.getElementById("send").innerHTML = ICONS.send;
+    const thread = DATA.chatThreads.find(t => t.carrier === "サンプル建材株式会社");
+    thread.unread = 0; // 開いたので既読
+    const scroll = document.getElementById("scroll");
+    function bubble(m) {
+      const me = m.from === "carrier";
+      return `<div class="msg ${me ? "me" : "them"}">${m.text}<div class="mt">${m.at}</div></div>`;
+    }
+    function render() {
+      scroll.innerHTML = `<div class="chat-day">2026年6月24日</div>` + thread.messages.map(bubble).join("");
+      scroll.scrollTop = scroll.scrollHeight;
+    }
+    render();
+    const input = document.getElementById("input");
+    input.addEventListener("input", () => { input.style.height = "auto"; input.style.height = Math.min(96, input.scrollHeight) + "px"; });
+    function send() {
+      const text = input.value.trim(); if (!text) return;
+      thread.messages.push({ from: "carrier", text, at: "たった今" });
+      input.value = ""; input.style.height = "auto"; render();
+      if (window.BUS) BUS.post("chat-carrier", { text });   // → 事務局（管理コンソール）へ
+    }
+    // 事務局からの返信を受信して吹き出しに追加
+    if (window.BUS) BUS.on("chat-office", (p) => { thread.messages.push({ from: "office", text: p.text, at: "たった今" }); render(); });
+    document.getElementById("send").addEventListener("click", send);
+    input.addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } });
+  })();
+  </script>
+</body>
+</html>

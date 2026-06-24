@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>予約確定一覧｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="home" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="予約確定一覧" data-date="2026-06-24 (水)">
+  <main class="main">
+    <div class="page">
+      <div class="page-head">
+        <h1 class="page-title">予約確定一覧</h1>
+        <p class="page-sub">本日の搬入確定分。日付・品目・運搬業者で絞り込めます。</p>
+      </div>
+
+      <!-- 今日やること -->
+      <a href="aozora-apply.html" class="card" style="display:flex;align-items:center;gap:16px;padding:16px 20px;margin-bottom:18px;border-left:4px solid var(--warn);text-decoration:none">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--warn-soft);color:var(--warn-ink);display:grid;place-items:center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" width="22" height="22"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6z"/></svg></div>
+        <div style="flex:1"><div style="font-weight:700">承認待ちの申請が <span class="mono" style="color:var(--warn-ink)">75件</span> あります</div>
+          <div class="td-sub">うち確認依頼中 2件・変更申請 1件。クリックで処理キューへ。</div></div>
+        <span class="btn btn-warn">申請を処理する →</span>
+      </a>
+
+      <div class="stats">
+        <div class="stat is-brand"><div class="stat-label">本日 AM 搬入</div><div class="stat-num num">6<small> / 12枠</small></div></div>
+        <div class="stat is-brand"><div class="stat-label">本日 PM 搬入</div><div class="stat-num num">4<small> / 12枠</small></div></div>
+        <div class="stat is-ok"><div class="stat-label">今週 確定</div><div class="stat-num num">38<small> 件</small></div></div>
+        <div class="stat is-warn"><div class="stat-label">承認待ち</div><div class="stat-num num">75<small> 件</small></div></div>
+      </div>
+
+      <div class="toolbar">
+        <input class="input" type="text" value="2026-06-24" style="max-width:150px" aria-label="日付">
+        <select class="select" style="max-width:170px" id="wfilter" aria-label="品目"></select>
+        <input class="input" placeholder="運搬業者で検索" style="max-width:190px" aria-label="運搬業者">
+        <label class="check"><input type="checkbox"> 承認待ちも表示</label>
+        <div class="grow"></div>
+        <a class="btn" href="aozora-calendar.html">カレンダーで見る</a>
+        <a class="btn btn-primary" href="aozora-add.html">新規搬入予約</a>
+        <button class="btn" onclick="toast('予約確定一覧を Excel に出力しました','ok')">Excel 出力</button>
+      </div>
+
+      <div class="card card-pad">
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>搬入予定</th><th>運搬業者 / 排出事業者</th><th>排出事業場</th>
+              <th>品目</th><th>車種・台数</th><th>予約者</th><th>状態</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  document.getElementById("wfilter").innerHTML =
+    `<option value="">品目（すべて）</option>` + DATA.WASTE.map(w => `<option>${w}</option>`).join("");
+
+  document.getElementById("rows").innerHTML = DATA.confirmed.map(r => `
+    <tr>
+      <td><div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div></td>
+      <td><div class="cell-stack"><span class="td-strong">${r.carrier}</span><span class="td-sub">${r.emitter}</span></div></td>
+      <td>${r.site}</td>
+      <td>${UI.waste(r.waste)}</td>
+      <td class="td-mono">${r.car} <span class="td-sub">×${r.units}台</span></td>
+      <td>${r.by}</td>
+      <td>${UI.pill("fixed")}</td>
+    </tr>`).join("");
+})();
+</script>
+</body>
+</html>

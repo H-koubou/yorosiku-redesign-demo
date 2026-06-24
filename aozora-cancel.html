@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>取消申請一覧｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="cancel" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="取消申請一覧" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">取消申請一覧</h1>
+      <p class="page-sub">運搬業者からの予約取消の依頼。承認すると確定枠が解放されます。</p></div>
+    <div class="stats">
+      <div class="stat is-bad"><div class="stat-label">取消申請</div><div class="stat-num num" id="cTotal">0<small> 件</small></div></div>
+      <div class="stat is-ok"><div class="stat-label">解放される枠</div><div class="stat-num num" id="cUnits">0<small> 台分</small></div></div>
+    </div>
+    <div class="card card-pad"><div class="table-wrap"><table class="tbl">
+      <thead><tr><th>搬入予定</th><th>状態</th><th>運搬業者 / 排出事業者</th><th>排出事業場</th><th>品目・車種</th><th>取消理由</th><th>申請者</th><th class="col-actions">操作</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div></div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const C = DATA.cancels.map(r => ({ ...r, done:false }));
+  function stats() {
+    const open = C.filter(r => !r.done);
+    document.getElementById("cTotal").innerHTML = open.length + '<small> 件</small>';
+    document.getElementById("cUnits").innerHTML = open.reduce((a,r)=>a+r.units,0) + '<small> 台分</small>';
+  }
+  function row(r, i) {
+    return `<tr${r.done?' style="opacity:.5"':''}>
+      <td><div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div></td>
+      <td>${r.done ? UI.pill("fixed").replace("確定","取消済") : UI.pill("cancel")}</td>
+      <td><div class="cell-stack"><span class="td-strong">${r.carrier}</span><span class="td-sub">${r.emitter}</span></div></td>
+      <td>${r.site}</td>
+      <td class="td-mono">${UI.waste(r.waste)} <span class="td-sub">${r.car}×${r.units}</span></td>
+      <td style="max-width:220px">${r.reason}</td>
+      <td><div class="cell-stack"><span>${r.by}</span><span class="td-sub mono">${r.at}</span></div></td>
+      <td class="col-actions">${r.done ? `<span class="pill pill-neutral">処理済</span>` :
+        `<div class="row-actions"><button class="btn btn-danger btn-sm" data-i="${i}" data-a="ok">取消を承認</button>
+         <button class="btn btn-ghost btn-sm" data-i="${i}" data-a="no">却下</button></div>`}</td></tr>`;
+  }
+  function render(){ document.getElementById("rows").innerHTML = C.map(row).join(""); stats(); }
+  document.getElementById("rows").addEventListener("click", e => {
+    const b = e.target.closest("[data-a]"); if (!b) return;
+    const r = C[+b.dataset.i];
+    if (b.dataset.a === "ok") { r.done = true; render(); toast(`取消を承認し、${r.date.slice(5)} ${r.ampm} の枠を ${r.units}台分 解放しました`, "ok"); }
+    else { r.done = true; render(); toast("取消申請を却下しました", "default"); }
+  });
+  render();
+})();
+</script>
+</body></html>

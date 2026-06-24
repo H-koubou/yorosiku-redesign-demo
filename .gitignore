@@ -1,0 +1,5 @@
+.DS_Store
+screenshots/
+# 現行システムの実画面（実データ含む）は公開しない
+compare/before-apply.png
+compare/before-hauler.png
