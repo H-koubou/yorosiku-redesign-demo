@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>あおぞら予ろシク デモ操作マニュアル</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { background:#0a201c; margin:0; overflow:hidden; }
+  .deck { width:100vw; height:100vh; position:relative; }
+  .slide { position:absolute; inset:0; padding:54px 64px; display:none; flex-direction:column; background:var(--surface-2); overflow-y:auto; }
+  .slide.active { display:flex; }
+  .slide.dark { background:linear-gradient(150deg,#0c2722,#0a201c 55%,#0e3a30); color:#fff; }
+  .eyebrow { color:var(--accent); font-weight:700; font-size:13px; letter-spacing:.1em; }
+  .slide.dark .eyebrow { color:var(--accent); }
+  h1 { font-size:40px; line-height:1.2; letter-spacing:-.02em; margin:14px 0 10px; }
+  h2 { font-size:27px; letter-spacing:-.01em; margin:6px 0 18px; }
+  .sub { color:var(--muted); font-size:15px; } .slide.dark .sub { color:#a9c2b9; }
+  .brand-mark { width:46px; height:46px; border-radius:11px; background:linear-gradient(135deg,var(--accent),var(--brand)); display:grid; place-items:center; color:#04231c; font-weight:800; font-size:20px; }
+  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:8px; }
+  .card2 { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:var(--shadow-1); }
+  .card2 .n { width:30px; height:30px; border-radius:8px; background:var(--brand-soft); color:var(--brand-ink); display:grid; place-items:center; font-family:var(--mono); font-weight:700; margin-bottom:10px; }
+  .card2 h3 { font-size:16px; margin-bottom:6px; } .card2 p { color:var(--muted); font-size:13px; }
+  ol.steps { font-size:16px; line-height:2.1; padding-left:22px; margin:6px 0; }
+  ol.steps b { color:var(--brand-strong); }
+  .url { font-family:var(--mono); background:var(--surface); border:1px solid var(--line-strong); border-radius:9px; padding:9px 13px; font-size:14px; display:inline-block; color:var(--brand-strong); }
+  .url.big { font-size:17px; padding:12px 18px; }
+  .pillrow { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .tag2 { font-size:12px; font-weight:700; padding:4px 11px; border-radius:999px; background:var(--brand-soft); color:var(--brand-ink); }
+  .note { background:var(--warn-soft); border:1px solid #ecd9b6; border-radius:12px; padding:13px 16px; font-size:13.5px; color:var(--warn-ink); margin-top:14px; }
+  .grid2 { display:grid; grid-template-columns:1.2fr .8fr; gap:28px; align-items:center; }
+  .qrbox { background:#fff; border-radius:14px; padding:16px; text-align:center; }
+  .qrbox img { width:200px; height:200px; display:block; margin:0 auto 8px; }
+  .qrbox .cap { font-size:12px; color:#333; }
+  table.est { width:100%; border-collapse:collapse; font-size:14px; }
+  table.est th, table.est td { border-bottom:1px solid var(--line); padding:11px 12px; text-align:left; }
+  table.est th { background:var(--surface); color:var(--muted); font-size:12px; }
+  table.est .p { font-family:var(--mono); font-weight:700; white-space:nowrap; }
+  .foot { margin-top:auto; padding-top:18px; display:flex; align-items:center; gap:10px; color:var(--muted); font-size:12px; }
+  .nav { position:fixed; bottom:18px; right:22px; display:flex; align-items:center; gap:10px; z-index:10; }
+  .nav button { width:42px; height:42px; border-radius:11px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); color:#fff; font-size:18px; cursor:pointer; }
+  .slide.active:not(.dark) ~ .nav button {}
+  .counter { position:fixed; bottom:26px; left:24px; color:#6f8b82; font-family:var(--mono); font-size:13px; z-index:10; }
+  .hint2 { font-size:12px; color:var(--muted); margin-top:6px; }
+  @media print {
+    body { overflow:visible; } .deck { height:auto; }
+    .slide { display:flex !important; position:relative; inset:auto; height:100vh; page-break-after:always; }
+    .nav, .counter { display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 表紙 -->
+  <section class="slide dark active">
+    <div style="display:flex;align-items:center;gap:12px"><div class="brand-mark">あ</div><div style="font-weight:700">あおぞら予ろシク</div></div>
+    <div style="margin:auto 0">
+      <div class="eyebrow">DEMO 操作マニュアル</div>
+      <h1>あおぞら予ろシク<br>リデザイン提案・デモのご案内</h1>
+      <p class="sub">現行機能はそのまま、使いやすさを刷新。施設（管理者）と運搬業者（スマホアプリ）、双方向の通知まで実機で体験いただけます。</p>
+      <div class="pillrow"><span class="tag2">機能の増減ゼロ</span><span class="tag2">運搬業者スマホアプリ(PWA)</span><span class="tag2">双方向プッシュ通知</span><span class="tag2">受付QR・計量・ダッシュボード</span></div>
+    </div>
+    <div class="foot" style="color:#6f8b82">for エクオ株式会社 ／ 制作：樋口工房</div>
+  </section>
+
+  <!-- 2 概要 -->
+  <section class="slide">
+    <div class="eyebrow">OVERVIEW</div><h2>このデモは何か</h2>
+    <p class="sub" style="margin-bottom:18px">現行「あおぞら予ろシク」の項目・操作は一切変えず、<b>情報設計・状態の可視化・入力の構造化</b>だけを刷新したクリック可能な試作です。</p>
+    <div class="cards">
+      <div class="card2"><div class="n">1</div><h3>施設（管理者）</h3><p>申請の承認・取消・カレンダー・工場/基本情報・受付計量・ダッシュボード・チャット（全16画面）</p></div>
+      <div class="card2"><div class="n">2</div><h3>運搬業者（予約者）</h3><p>スマホアプリ（PWA）。空き枠の確認→申請→マイ予約→受付QR、事務局チャット（全7画面）</p></div>
+      <div class="card2"><div class="n">3</div><h3>双方向の通知</h3><p>業者が申請→施設に通知＆受付チャイム／施設が承認→業者スマホに通知。アプリを閉じても届く</p></div>
+    </div>
+    <div class="note">デモの会社名・担当者名・データはすべて<b>匿名のサンプル</b>です（実在の情報は含みません）。</div>
+  </section>
+
+  <!-- 3 アクセスURL -->
+  <section class="slide">
+    <div class="eyebrow">ACCESS</div><h2>まずここを開く</h2>
+    <p class="sub" style="margin-bottom:10px">PCのブラウザ（Chrome推奨）で、画面ツアーの入口を開いてください。</p>
+    <div style="margin:6px 0 18px"><a class="url big" href="https://h-koubou.github.io/yorosiku-redesign-demo/" target="_blank">https://h-koubou.github.io/yorosiku-redesign-demo/</a></div>
+    <div class="cards">
+      <div class="card2"><div class="n">▶</div><h3>施設（管理者）</h3><p style="margin-bottom:8px">PC向け管理コンソール</p><a class="url" href="https://h-koubou.github.io/yorosiku-redesign-demo/aozora-home.html" target="_blank">aozora-home.html</a></div>
+      <div class="card2"><div class="n">▶</div><h3>運搬業者アプリ</h3><p style="margin-bottom:8px">スマホ向け（PWA）</p><a class="url" href="https://h-koubou.github.io/yorosiku-redesign-demo/hauler-home.html" target="_blank">hauler-home.html</a></div>
+      <div class="card2"><div class="n">▶</div><h3>Before / After＋見積</h3><p style="margin-bottom:8px">現行↔刷新の比較</p><a class="url" href="https://h-koubou.github.io/yorosiku-redesign-demo/compare.html" target="_blank">compare.html</a></div>
+    </div>
+    <p class="hint2">※ログイン画面はデモのため、IDパスワードはそのまま「ログイン」を押せば入れます。</p>
+  </section>
+
+  <!-- 4 テスト1 管理者 -->
+  <section class="slide">
+    <div class="eyebrow">TEST ①</div><h2>施設（管理者）を見る — PC</h2>
+    <div class="grid2">
+      <div>
+        <ol class="steps">
+          <li>PCで <b>aozora-home.html</b> を開く（左メニューで全画面に移動）</li>
+          <li><b>申請一覧</b>：承認待ちを“処理キュー”で。行の「承認」「編集」</li>
+          <li><b>ダッシュボード</b>：受入枠の混雑・空き枠の推奨・集計</li>
+          <li><b>カレンダー</b>：各枠の受入残をゲージ表示（満枠が一目）</li>
+          <li><b>計量・受付</b>：2回計量で正味を自動計算</li>
+          <li><b>チャット</b>：運搬業者とのやりとり</li>
+        </ol>
+      </div>
+      <div>
+        <div class="card2"><h3>見どころ</h3><p>「機能はそのまま、見やすさだけ」を確認。現行の横長テーブルが“処理キュー”に、受入残が“ゲージ”に変わっています。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 テスト2 スマホアプリ -->
+  <section class="slide">
+    <div class="eyebrow">TEST ②</div><h2>運搬業者アプリ — スマホで“アプリ化”</h2>
+    <div class="grid2">
+      <div>
+        <ol class="steps">
+          <li>スマホの <b>Safari（iPhone）／Chrome（Android）</b> で右のQRを読む</li>
+          <li>iPhone：共有ボタン → <b>「ホーム画面に追加」</b></li>
+          <li>ホーム画面の <b>アイコンから起動</b>（全画面アプリに）</li>
+          <li>予約カレンダー→<b>申請</b>→マイ予約→<b>受付QR</b>を体験</li>
+        </ol>
+        <div class="note">iPhoneの通知は「Safariでホーム画面に追加したアプリ」でのみ有効（iOSの仕様）。必ずインストールしてから通知をオンに。</div>
+      </div>
+      <div class="qrbox">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=https%3A%2F%2Fh-koubou.github.io%2Fyorosiku-redesign-demo%2Fhauler-home.html" alt="運搬業者アプリのQR">
+        <div class="cap">スマホで読み取り → 運搬業者アプリ</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 テスト3 通知 -->
+  <section class="slide">
+    <div class="eyebrow">TEST ③</div><h2>通知をオンにする — スマホ</h2>
+    <ol class="steps">
+      <li>インストールした運搬業者アプリを開く</li>
+      <li><b>アカウント → 「通知をオンにする」</b> → 許可</li>
+      <li>「テスト通知を送る」で、まず端末に通知が出ることを確認</li>
+      <li>PCの管理画面で <b>承認</b> すると、<b>スマホに「予約が承認されました」</b>が届く（アプリを閉じていてもOK）</li>
+    </ol>
+    <div class="cards" style="margin-top:18px">
+      <div class="card2"><div class="n">🔔</div><h3>プッシュ通知</h3><p>本番HTTPSなので、アプリを閉じていても届きます</p></div>
+      <div class="card2"><div class="n">💬</div><h3>チャット</h3><p>事務局⇄業者のやりとり。新着も通知</p></div>
+      <div class="card2"><div class="n">📲</div><h3>LINE連携</h3><p>承認/確認依頼をLINEへも（設定で有効化・次フェーズで実装）</p></div>
+    </div>
+  </section>
+
+  <!-- 7 テスト4 双方向＋チャイム -->
+  <section class="slide">
+    <div class="eyebrow">TEST ④</div><h2>双方向＋受付チャイム（事務所デスク向け）</h2>
+    <ol class="steps">
+      <li>PCのChromeで <b>申請一覧</b> を開き、画面を<b>一度クリック</b>（音の許可）</li>
+      <li>スマホ（運搬業者アプリ）で <b>申請</b> または <b>チャット送信</b></li>
+      <li>→ PCで <b>「ポーン」と受付チャイム</b>が鳴り、一覧が更新</li>
+      <li>PCで <b>承認</b> → スマホに通知が返る（双方向）</li>
+    </ol>
+    <div class="note">受付チャイムは<b>OSの通知設定に関係なく確実に鳴ります</b>（事務所は管理画面を開きっぱなしの運用を想定）。最初の1クリックだけ必須です。</div>
+  </section>
+
+  <!-- 8 前提・注意 -->
+  <section class="slide">
+    <div class="eyebrow">NOTES</div><h2>ご確認・前提</h2>
+    <ol class="steps">
+      <li><b>本番のプッシュ通知・インストールには独自ドメインのHTTPS（SSL）</b>が必要です</li>
+      <li><b>iPhoneの通知</b>はSafariで「ホーム画面に追加」したアプリのみ（iOS 16.4以降）</li>
+      <li><b>Macのデスクトップ通知</b>はChrome推奨。macOSシステム設定→通知でChromeを許可</li>
+      <li>デモは<b>クリック可能な試作</b>（保存・送信は擬似）。データは匿名サンプル</li>
+      <li><b>計量器(スケール)連携・電子マニフェスト(JWNET)・写真AI</b>等は次フェーズの個別実装</li>
+    </ol>
+  </section>
+
+  <!-- 9 進め方・見積 -->
+  <section class="slide">
+    <div class="eyebrow">PLAN</div><h2>進め方と概算（税別・提案用レンジ）</h2>
+    <table class="est">
+      <thead><tr><th style="width:30px"></th><th>ステップ</th><th>内容</th><th>目安</th><th>期間</th></tr></thead>
+      <tbody>
+        <tr><td class="p">1</td><td>要件定義・画面設計</td><td>現行機能の棚卸し・項目/権限の確定</td><td class="p">¥30〜60万</td><td>2〜3週</td></tr>
+        <tr><td class="p">2</td><td>フロント実装（全画面）</td><td>管理コンソール＋運搬業者PWA</td><td class="p">¥120〜220万</td><td>6〜10週</td></tr>
+        <tr><td class="p">3</td><td>通知・チャット基盤</td><td>Web Push＋施設⇄業者メッセージ</td><td class="p">¥40〜80万</td><td>2〜4週</td></tr>
+        <tr><td class="p">4</td><td>既存連携・データ移行</td><td>現行DB／計量・マニフェスト等（個別見積）</td><td class="p">別途</td><td>—</td></tr>
+        <tr><td class="p">5</td><td>運用・保守</td><td>ホスティング・改善対応</td><td class="p">月 ¥3〜8万</td><td>継続</td></tr>
+      </tbody>
+    </table>
+    <p class="hint2">※ 配車管理システムは別システムのため別途お見積り。</p>
+  </section>
+
+  <!-- 10 次のステップ -->
+  <section class="slide dark">
+    <div class="eyebrow">NEXT</div>
+    <div style="margin:auto 0">
+      <h1>ご一読ありがとうございます</h1>
+      <p class="sub" style="max-width:60ch">気になる画面・機能、追加したい要件があればお気軽にお知らせください。まずは <b style="color:#fff">有料の要件定義</b> から、リスクを抑えて進められます。</p>
+      <div style="margin-top:22px"><a class="url big" style="background:var(--accent);color:#04231c;border:0" href="https://h-koubou.github.io/yorosiku-redesign-demo/" target="_blank">デモを開く</a></div>
+    </div>
+    <div class="foot" style="color:#6f8b82">あおぞら予ろシク リデザイン提案 ／ for エクオ株式会社</div>
+  </section>
+
+</div>
+
+<div class="counter" id="counter">1 / 10</div>
+<div class="nav">
+  <button id="prev" aria-label="前へ">‹</button>
+  <button id="next" aria-label="次へ">›</button>
+</div>
+
+<script>
+(function () {
+  const slides = [...document.querySelectorAll(".slide")];
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    document.getElementById("counter").textContent = (i + 1) + " / " + slides.length;
+  }
+  document.getElementById("next").addEventListener("click", () => show(i + 1));
+  document.getElementById("prev").addEventListener("click", () => show(i - 1));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); show(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+  });
+  show(0);
+})();
+</script>
+</body>
+</html>
