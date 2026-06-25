@@ -140,7 +140,7 @@
           ? `<span class="pill pill-ok" style="align-self:center"><span class="dot"></span>承認済み</span>`
           : `<button class="btn btn-ok" style="flex:1" data-act="approve" data-id="${r.id}">承認する</button>
              <button class="btn btn-warn" data-act="req" data-id="${r.id}">確認依頼</button>
-             <button class="btn btn-ghost">編集</button>`}
+             <a class="btn btn-ghost" href="aozora-apply-edit.html?id=${r.id}">編集</a>`}
       </div>`;
   }
 
@@ -151,7 +151,7 @@
       e.stopPropagation();
       if (btn.dataset.act === "approve") approve(id);
       else if (btn.dataset.act === "req") toast("確認依頼を運搬業者へ送信しました", "default");
-      else toast("編集画面へ（デモ）", "default");
+      else location.href = "aozora-apply-edit.html?id=" + id;
       return;
     }
     openDrawer(detail(Q.find(x => x.id === id)));

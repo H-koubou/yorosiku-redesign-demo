@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>申請の編集｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="apply" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="申請の編集" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page">
+    <div class="page-head flex" style="gap:12px">
+      <a class="icon-btn" href="aozora-apply.html" aria-label="戻る"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
+      <div><h1 class="page-title">申請の編集</h1><p class="page-sub" id="sub">内容を修正して保存、またはそのまま承認できます。</p></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start">
+      <form class="card" onsubmit="return false">
+        <div class="card-body">
+          <div class="form-section">
+            <div class="form-section-title"><span class="n">1</span>日時・業者</div>
+            <div class="form-grid">
+              <div class="field"><label class="label">予定日 <span class="req">必須</span></label><select class="select" id="fDate"></select></div>
+              <div class="field"><label class="label">搬入予定時間 <span class="req">必須</span></label><select class="select" id="fAmpm"><option value="AM">AM</option><option value="PM">PM</option></select></div>
+              <div class="field"><label class="label">運搬業者 <span class="req">必須</span></label><input class="input" id="fCarrier"></div>
+              <div class="field"><label class="label">申請者</label><input class="input" id="fBy" disabled></div>
+              <div class="field"><label class="label">排出事業者 <span class="req">必須</span></label><input class="input" id="fEmitter"></div>
+              <div class="field"><label class="label">排出事業場 <span class="req">必須</span></label><input class="input" id="fSite"></div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="form-section">
+            <div class="form-section-title"><span class="n">2</span>廃棄物</div>
+            <label class="label" style="margin-bottom:8px">産業廃棄物種類 <span class="req">必須</span></label>
+            <div id="wasteRows"></div>
+            <button class="btn btn-sm" id="addWaste" type="button">＋ 品目を追加</button>
+            <div class="field" style="margin-top:16px;max-width:260px"><label class="label">畳の枚数 <span class="opt">任意</span></label><div class="input-affix"><input class="input num" id="fTatami" type="number" min="0"><span class="suffix">枚</span></div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="form-section">
+            <div class="form-section-title"><span class="n">3</span>車両・特記</div>
+            <div class="form-grid">
+              <div class="field"><label class="label">車種 <span class="req">必須</span></label><select class="select" id="fCar"></select></div>
+              <div class="field"><label class="label">台数 <span class="req">必須</span></label><div class="input-affix"><input class="input num" id="fUnits" type="number" min="1"><span class="suffix">台</span></div></div>
+              <div class="field col-2"><label class="label">特記事項 <span class="opt">任意</span></label><textarea class="textarea" id="fNote"></textarea></div>
+            </div>
+          </div>
+        </div>
+      </form>
+      <aside class="card" style="position:sticky;top:84px">
+        <div class="card-head"><div class="card-title">現在の状態 / 枠</div></div>
+        <div class="card-body">
+          <div style="margin-bottom:12px" id="statusBox"></div>
+          <div id="slot"></div>
+          <div class="divider"></div>
+          <button class="btn btn-ok btn-lg" style="width:100%" id="approve">承認する</button>
+          <div class="flex" style="gap:8px;margin-top:8px">
+            <button class="btn btn-warn" style="flex:1" id="req">確認依頼</button>
+            <button class="btn" style="flex:1" id="save">保存</button>
+          </div>
+          <a class="btn btn-ghost" style="width:100%;margin-top:8px" href="aozora-apply.html">一覧に戻る</a>
+        </div>
+      </aside>
+    </div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const CARS = ["大型アームロール","4t平ボディ","4tパッカー","4tウイング","4tダンプ","4tユニック","8tアームロール","大型平ボディ","大型ダンプ","大型ユニック","2tユニック","3tユニック","軽トラ"];
+  const id = new URLSearchParams(location.search).get("id");
+  const r = DATA.applyQueue.find(x => x.id === id) || DATA.applyQueue[0];
+
+  const dates = ["2026-06-22","2026-06-23","2026-06-25","2026-06-26","2026-06-27"];
+  document.getElementById("fDate").innerHTML = dates.map(d => `<option ${d===r.date?"selected":""}>${d}</option>`).join("");
+  document.getElementById("fAmpm").value = r.ampm;
+  document.getElementById("fCarrier").value = r.carrier;
+  document.getElementById("fBy").value = r.by;
+  document.getElementById("fEmitter").value = r.emitter;
+  document.getElementById("fSite").value = r.site;
+  document.getElementById("fTatami").value = r.tatami || 0;
+  document.getElementById("fCar").innerHTML = CARS.map(c => `<option ${c===r.car?"selected":""}>${c}</option>`).join("");
+  if (!CARS.includes(r.car)) document.getElementById("fCar").insertAdjacentHTML("afterbegin", `<option selected>${r.car}</option>`);
+  document.getElementById("fUnits").value = r.units;
+  document.getElementById("fNote").value = r.note || "";
+  document.getElementById("statusBox").innerHTML = `<div class="flex between"><span class="td-sub">現在の状態</span>${UI.pill(r.status)}</div>`;
+
+  // waste repeater
+  const wrap = document.getElementById("wasteRows");
+  function row(sel) {
+    const el = document.createElement("div"); el.className = "repeater-row"; el.style.gridTemplateColumns = "1fr auto";
+    el.innerHTML = `<select class="select">${DATA.WASTE.map(w => `<option ${w===sel?"selected":""}>${w}</option>`).join("")}</select><button class="btn btn-ghost btn-sm" type="button">削除</button>`;
+    el.querySelector("button").addEventListener("click", () => { if (wrap.children.length > 1) el.remove(); else toast("品目は1つ以上必要です", "bad"); });
+    return el;
+  }
+  (r.waste.length ? r.waste : [DATA.WASTE[0]]).forEach(w => wrap.appendChild(row(w)));
+  document.getElementById("addWaste").addEventListener("click", () => wrap.appendChild(row(DATA.WASTE[0])));
+
+  // 枠
+  const CAP = DATA.CAP;
+  function usedFor(d, ampm) { const md = d.slice(5).replace(/^0/, "").replace("-0", "/").replace("-", "/"); const w = DATA.week.find(x => x.date === md); return w ? w[ampm.toLowerCase()] : 0; }
+  function refreshSlot() {
+    const d = document.getElementById("fDate").value, ampm = document.getElementById("fAmpm").value;
+    const used = usedFor(d, ampm), remain = CAP - used;
+    document.getElementById("slot").innerHTML = `${UI.gauge("台数 受入残", used, CAP)}<div class="hint" style="margin-top:8px">${d.slice(5)} ${ampm} は あと <b class="mono">${Math.max(0,remain)}台</b> 受入可能</div>`;
+  }
+  ["fDate","fAmpm"].forEach(x => document.getElementById(x).addEventListener("input", refreshSlot));
+  refreshSlot();
+
+  document.getElementById("save").addEventListener("click", () => { toast("申請を保存しました", "ok"); setTimeout(() => location.href = "aozora-apply.html", 700); });
+  document.getElementById("req").addEventListener("click", () => { toast("確認依頼を運搬業者へ送信しました", "default"); setTimeout(() => location.href = "aozora-apply.html", 700); });
+  document.getElementById("approve").addEventListener("click", () => {
+    const ampm = document.getElementById("fAmpm").value, date = document.getElementById("fDate").value;
+    toast(`${document.getElementById("fCarrier").value} の搬入を承認しました`, "ok");
+    if (window.BUS) BUS.post("approved", { carrier: document.getElementById("fCarrier").value, date, ampm, waste: r.waste, car: document.getElementById("fCar").value, units: parseInt(document.getElementById("fUnits").value || "1", 10) });
+    setTimeout(() => location.href = "aozora-apply.html", 800);
+  });
+})();
+</script>
+</body></html>

@@ -35,16 +35,16 @@
   function render() {
     if (tab === "carrier") {
       document.getElementById("thead").innerHTML = `<tr><th>運搬業者名</th><th>担当者</th><th>電話番号</th><th>予約実績</th><th class="col-actions">操作</th></tr>`;
-      document.getElementById("rows").innerHTML = DATA.carriers.map(c => `
+      document.getElementById("rows").innerHTML = DATA.carriers.map((c, i) => `
         <tr><td class="td-strong">${c.name}</td><td>${c.contact}</td><td class="td-mono">${c.tel}</td>
           <td class="td-mono">${c.count} 件</td>
-          <td class="col-actions"><button class="btn btn-ghost btn-sm" onclick="toast('編集（デモ）','default')">編集</button></td></tr>`).join("");
+          <td class="col-actions"><a class="btn btn-ghost btn-sm" href="aozora-basic-edit.html?type=carrier&i=${i}">編集</a></td></tr>`).join("");
     } else {
       document.getElementById("thead").innerHTML = `<tr><th>排出事業者名</th><th>電話番号</th><th>予約実績</th><th class="col-actions">操作</th></tr>`;
-      document.getElementById("rows").innerHTML = DATA.emitters.map(c => `
+      document.getElementById("rows").innerHTML = DATA.emitters.map((c, i) => `
         <tr><td class="td-strong">${c.name}</td><td class="td-mono">${c.tel}</td>
           <td class="td-mono">${c.count} 件</td>
-          <td class="col-actions"><button class="btn btn-ghost btn-sm" onclick="toast('編集（デモ）','default')">編集</button></td></tr>`).join("");
+          <td class="col-actions"><a class="btn btn-ghost btn-sm" href="aozora-basic-edit.html?type=emitter&i=${i}">編集</a></td></tr>`).join("");
     }
   }
   document.getElementById("tabs").addEventListener("click", e => {

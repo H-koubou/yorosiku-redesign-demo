@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工場の編集｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .waste-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px 18px; }
+  .wcheck { display:flex; align-items:center; gap:9px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; cursor:pointer; font-size:13px; }
+  .wcheck:hover { background:var(--surface-2); } .wcheck input { width:16px; height:16px; accent-color:var(--brand); }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="factory" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="工場の編集" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page">
+    <div class="page-head flex" style="gap:12px">
+      <a class="icon-btn" href="aozora-factory.html" aria-label="戻る"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
+      <div><h1 class="page-title" id="ttl">工場の編集</h1><p class="page-sub">受入枠の上限・営業時間・受入品目を設定します。カレンダーの残数はこの上限が基準です。</p></div>
+    </div>
+    <form class="card" onsubmit="return false" style="max-width:840px">
+      <div class="card-body">
+        <div class="form-section">
+          <div class="form-section-title"><span class="n">1</span>基本情報</div>
+          <div class="form-grid">
+            <div class="field col-2"><label class="label">工場名 <span class="req">必須</span></label><input class="input" id="fName"></div>
+            <div class="field col-2"><label class="label">所在地 <span class="opt">任意</span></label><input class="input" id="fArea"></div>
+            <div class="field"><label class="label">営業時間</label><div class="flex"><input class="input mono" type="time" id="fOpen" value="08:00"><span class="hint">〜</span><input class="input mono" type="time" id="fClose" value="17:00"></div></div>
+            <div class="field"><label class="label">稼働状態</label><select class="select" id="fActive"><option value="1">稼働中</option><option value="0">休止</option></select></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="form-section">
+          <div class="form-section-title"><span class="n">2</span>受入枠の上限</div>
+          <p class="hint" style="margin-bottom:14px">1枠（AM / PM）あたりに受け入れる車両の上限台数です。</p>
+          <div class="form-grid">
+            <div class="field"><label class="label">AM 受入上限 <span class="req">必須</span></label><div class="input-affix"><input class="input num" type="number" id="fAM" min="0"><span class="suffix">台/枠</span></div></div>
+            <div class="field"><label class="label">PM 受入上限 <span class="req">必須</span></label><div class="input-affix"><input class="input num" type="number" id="fPM" min="0"><span class="suffix">台/枠</span></div></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="form-section">
+          <div class="form-section-title"><span class="n">3</span>受入可能な品目</div>
+          <div class="waste-grid" id="wgrid"></div>
+        </div>
+      </div>
+      <div class="drawer-foot" style="border-radius:0 0 var(--r-lg) var(--r-lg)">
+        <button class="btn btn-primary" id="save">変更を保存</button>
+        <a class="btn btn-ghost" href="aozora-factory.html">取り消す</a>
+        <div style="flex:1"></div>
+        <button class="btn btn-danger" id="del">この工場を削除</button>
+      </div>
+    </form>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const i = parseInt(new URLSearchParams(location.search).get("i") || "0", 10);
+  const f = DATA.factories[i] || DATA.factories[0];
+  document.getElementById("ttl").textContent = f.name + " の編集";
+  document.getElementById("fName").value = f.name;
+  document.getElementById("fArea").value = f.area;
+  document.getElementById("fAM").value = f.capAM;
+  document.getElementById("fPM").value = f.capPM;
+  document.getElementById("fActive").value = f.active ? "1" : "0";
+  const hm = (f.hours || "08:00–17:00").split("–");
+  if (hm[0]) document.getElementById("fOpen").value = hm[0].trim();
+  if (hm[1]) document.getElementById("fClose").value = hm[1].trim();
+  document.getElementById("wgrid").innerHTML = DATA.WASTE.map(w =>
+    `<label class="wcheck"><input type="checkbox" ${f.wastes.includes(w) ? "checked" : ""}>${w}</label>`).join("");
+  document.getElementById("save").addEventListener("click", () => { toast("工場マスターを保存しました", "ok"); setTimeout(() => location.href = "aozora-factory.html", 800); });
+  document.getElementById("del").addEventListener("click", () => toast("削除は確認のうえ実行します（デモ）", "bad"));
+})();
+</script>
+</body></html>

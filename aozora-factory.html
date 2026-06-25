@@ -26,7 +26,7 @@
 </div>
 <script src="assets/data.js"></script><script src="assets/app.js"></script>
 <script>
-document.getElementById("grid").innerHTML = DATA.factories.map(f => `
+document.getElementById("grid").innerHTML = DATA.factories.map((f, i) => `
   <div class="card"><div class="card-head">
       <div style="flex:1"><div class="card-title">${f.name}</div><div class="td-sub">${f.area}・${f.hours}</div></div>
       <span class="pill pill-ok"><span class="dot"></span>稼働中</span></div>
@@ -38,8 +38,8 @@ document.getElementById("grid").innerHTML = DATA.factories.map(f => `
       <div class="label" style="margin-bottom:8px">受入可能な品目</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${UI.waste(f.wastes)}</div>
       <div class="divider"></div>
-      <div class="flex"><button class="btn btn-sm" onclick="toast('工場設定を編集（デモ）','default')">設定を編集</button>
-        <button class="btn btn-ghost btn-sm" onclick="toast('受入カレンダーへ（デモ）','default')">受入カレンダー</button></div>
+      <div class="flex"><a class="btn btn-sm" href="aozora-factory-edit.html?i=${i}">設定を編集</a>
+        <a class="btn btn-ghost btn-sm" href="aozora-calendar.html">受入カレンダー</a></div>
     </div></div>`).join("");
 </script>
 </body></html>
