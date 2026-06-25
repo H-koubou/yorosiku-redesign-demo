@@ -133,10 +133,16 @@
       const { publicKey } = await r.json();
       let sub = await reg.pushManager.getSubscription();
       if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
-      const res = await fetch(window.PUSH_API + "/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub) });
+      const res = await fetch(window.PUSH_API + "/api/subscribe?role=hauler", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub) });
       return res.ok;
     } catch (e) { console.warn("subscribePush failed", e); return false; }
   }
+  // 予約者の操作 → 管理者(PC)へ実プッシュ
+  window.pushSend = function (title, body, url, to) {
+    if (!window.PUSH_API) return;
+    fetch(window.PUSH_API + "/api/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, body, url, to: to || "admin" }) }).catch(() => {});
+  };
+
   window.requestPush = async function () {
     if (!("Notification" in window)) { toast("この端末は通知に未対応です（iPhoneはSafariで『ホーム画面に追加』してから）", "bad"); return false; }
     const p = await Notification.requestPermission();

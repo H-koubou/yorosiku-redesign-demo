@@ -86,7 +86,8 @@
       const payload = { carrier: "サンプル建材株式会社", emitter: "みらい建設株式会社", site: "みらい建設 解体現場",
         date, ampm, waste: [fWaste.value], car: fCar.value || "大型アームロール",
         units: Math.max(1, parseInt(fUnits.value || "1", 10)), by: "サンプル建材 山田" };
-      if (window.BUS) BUS.post("apply", payload);                 // → 管理コンソールへ即着信＋通知
+      if (window.BUS) BUS.post("apply", payload);                 // → 同一端末の管理タブへ
+      if (window.pushSend) pushSend("新しい搬入申請が届きました", `${payload.carrier}／${date.slice(5)} ${ampm}・${payload.car}×${payload.units}台`, "aozora-apply.html", "admin"); // → 管理者PCへ実プッシュ
       toast("搬入予約を申請しました", "ok");
       if (window.pwaNotify) pwaNotify("申請を受け付けました", `6月${x.d}日 ${ampm} の搬入予約を申請しました。施設の承認をお待ちください。`, "hauler-book.html", "request");
       setTimeout(() => location.href = "hauler-book.html", 900);

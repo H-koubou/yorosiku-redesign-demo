@@ -46,7 +46,8 @@
       const text = input.value.trim(); if (!text) return;
       thread.messages.push({ from: "carrier", text, at: "たった今" });
       input.value = ""; input.style.height = "auto"; render();
-      if (window.BUS) BUS.post("chat-carrier", { text });   // → 事務局（管理コンソール）へ
+      if (window.BUS) BUS.post("chat-carrier", { text });   // → 同一端末の管理タブへ
+      if (window.pushSend) pushSend("運搬業者からメッセージ", text, "aozora-chat.html", "admin");   // → 管理者PCへ実プッシュ
     }
     // 事務局からの返信を受信して吹き出しに追加
     if (window.BUS) BUS.on("chat-office", (p) => { thread.messages.push({ from: "office", text: p.text, at: "たった今" }); render(); });

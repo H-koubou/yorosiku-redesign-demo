@@ -50,6 +50,7 @@
       const r = R[+b.dataset.i];
       toast("取消依頼を施設へ送信しました", "default");
       if (window.pwaNotify) pwaNotify("取消依頼を送信しました", `${r.date.slice(5)} ${r.ampm} の取消を依頼しました。施設の承認をお待ちください。`, "hauler-book.html", "request");
+      if (window.pushSend) pushSend("取消依頼が届きました", `${r.carrier||"サンプル建材株式会社"}／${r.date.slice(5)} ${r.ampm} の取消依頼`, "aozora-cancel.html", "admin"); // → 管理者PCへ
     });
   })();
   </script>

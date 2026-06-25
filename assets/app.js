@@ -140,11 +140,29 @@
     toastTimer = setTimeout(() => { t.style.opacity = "0"; t.style.transform = "translateX(-50%) translateY(12px)"; }, 2600);
   };
 
-  // Web Push サーバーへ送信（管理者の操作 → 登録端末へ実プッシュ）
-  window.pushSend = function (title, body, url) {
+  // Web Push サーバーへ送信（管理者の操作 → 既定では予約者(hauler)端末へ）
+  window.pushSend = function (title, body, url, to) {
     if (!window.PUSH_API) return;
-    fetch(window.PUSH_API + "/api/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, body, url }) }).catch(() => {});
+    fetch(window.PUSH_API + "/api/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, body, url, to: to || "hauler" }) }).catch(() => {});
   };
+
+  // 管理者PCをプッシュ購読として登録（role=admin）
+  async function subscribeRole(role) {
+    if (!window.PUSH_API || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const { publicKey } = await (await fetch(window.PUSH_API + "/api/vapidPublicKey")).json();
+      const pad = "=".repeat((4 - (publicKey.length % 4)) % 4);
+      const base = (publicKey + pad).replace(/-/g, "+").replace(/_/g, "/");
+      const rawd = atob(base), arr = new Uint8Array(rawd.length);
+      for (let i = 0; i < rawd.length; i++) arr[i] = rawd.charCodeAt(i);
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr });
+      const res = await fetch(window.PUSH_API + "/api/subscribe?role=" + role, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub) });
+      return res.ok;
+    } catch (e) { console.warn("subscribeRole failed", e); return false; }
+  }
+  window.subscribeAdminPush = () => subscribeRole("admin");
 
   const hasN = () => "Notification" in window;
   const pushState = () => (hasN() ? Notification.permission : "unsupported");
@@ -202,7 +220,11 @@
     document.getElementById("adminEnablePush").addEventListener("click", async () => {
       if (!hasN()) { toast("この環境は通知に未対応です", "bad"); return; }
       const p = await Notification.requestPermission(); refresh();
-      if (p === "granted") { toast("デスクトップ通知をオンにしました", "ok"); window.adminNotify("通知をオンにしました", "新着の申請・取消・メッセージをデスクトップにお知らせします。", "aozora-apply.html", "approved"); }
+      if (p === "granted") {
+        const ok = await window.subscribeAdminPush();
+        toast(ok ? "デスクトップ通知をオンにしました（このPCを登録）" : "通知はONですがPC登録に失敗しました", ok ? "ok" : "bad");
+        window.adminNotify("通知をオンにしました", "新着の申請・取消・メッセージをデスクトップにお知らせします。", "aozora-apply.html", "approved");
+      }
       else toast(p === "denied" ? "通知がブロックされています（ブラウザ設定から許可してください）" : "通知は許可されませんでした", "bad");
     });
     document.getElementById("adminTestPush").addEventListener("click", () => {
