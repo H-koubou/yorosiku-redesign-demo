@@ -6,6 +6,8 @@
   "use strict";
   const s = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%">${p}</svg>`;
 
+  window.PUSH_API = "https://yorosiku-push.vercel.app"; // Web Push サーバー（Vercel）
+
   window.ICONS = {
     check:    s('<path d="M20 6L9 17l-5-5"/>'),
     inbox:    s('<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6z"/>'),

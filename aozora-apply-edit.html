@@ -124,6 +124,7 @@
     const ampm = document.getElementById("fAmpm").value, date = document.getElementById("fDate").value;
     toast(`${document.getElementById("fCarrier").value} の搬入を承認しました`, "ok");
     if (window.BUS) BUS.post("approved", { carrier: document.getElementById("fCarrier").value, date, ampm, waste: r.waste, car: document.getElementById("fCar").value, units: parseInt(document.getElementById("fUnits").value || "1", 10) });
+    if (window.pushSend) pushSend("予約が承認されました", `${date.slice(5)} ${ampm} の搬入が確定しました。`, "hauler-book.html");
     setTimeout(() => location.href = "aozora-apply.html", 800);
   });
 })();

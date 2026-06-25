@@ -110,7 +110,8 @@
     r.status = "fixed";
     render();
     toast(`${r.carrier} の ${r.date.slice(5)} ${r.ampm} 搬入を承認しました`, "ok");
-    if (window.BUS) BUS.post("approved", { carrier: r.carrier, date: r.date, ampm: r.ampm, waste: r.waste, car: r.car, units: r.units }); // → 予約者アプリへ通知
+    if (window.BUS) BUS.post("approved", { carrier: r.carrier, date: r.date, ampm: r.ampm, waste: r.waste, car: r.car, units: r.units }); // → 同一端末の予約者タブへ
+    if (window.pushSend) pushSend("予約が承認されました", `${r.date.slice(5)} ${r.ampm}・${(r.waste||[]).join("・")} が確定しました。`, "hauler-book.html"); // → 実機(iPhone)へプッシュ
   }
 
   function detail(r) {

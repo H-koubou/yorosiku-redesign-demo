@@ -140,6 +140,12 @@
     toastTimer = setTimeout(() => { t.style.opacity = "0"; t.style.transform = "translateX(-50%) translateY(12px)"; }, 2600);
   };
 
+  // Web Push サーバーへ送信（管理者の操作 → 登録端末へ実プッシュ）
+  window.pushSend = function (title, body, url) {
+    if (!window.PUSH_API) return;
+    fetch(window.PUSH_API + "/api/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, body, url }) }).catch(() => {});
+  };
+
   const hasN = () => "Notification" in window;
   const pushState = () => (hasN() ? Notification.permission : "unsupported");
 

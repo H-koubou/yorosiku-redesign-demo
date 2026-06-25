@@ -73,7 +73,8 @@
     const i = document.getElementById("input"); const v = i.value.trim(); if(!v) return;
     cur.messages.push({ from:"office", text:v, at:"たった今" }); cur.at="たった今"; i.value=""; renderThread(); renderList();
     toast("メッセージを送信しました", "ok");
-    if (window.BUS) BUS.post("chat-office", { text: v });   // → 予約者アプリへ
+    if (window.BUS) BUS.post("chat-office", { text: v });   // → 同一端末の予約者タブへ
+    if (window.pushSend) pushSend("あおぞら事務局", v, "hauler-chat.html");   // → 実機(iPhone)へプッシュ
   });
   // 運搬業者からの新着メッセージを受信（サンプル建材スレッドへ）
   if (window.BUS) BUS.on("chat-carrier", (p) => {

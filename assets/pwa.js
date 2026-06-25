@@ -118,10 +118,34 @@
     } catch (_) {}
   };
 
+  function urlBase64ToUint8Array(b64) {
+    const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+    const base = (b64 + pad).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(base), arr = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return arr;
+  }
+  async function subscribePush() {
+    if (!window.PUSH_API || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const r = await fetch(window.PUSH_API + "/api/vapidPublicKey");
+      const { publicKey } = await r.json();
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+      const res = await fetch(window.PUSH_API + "/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub) });
+      return res.ok;
+    } catch (e) { console.warn("subscribePush failed", e); return false; }
+  }
   window.requestPush = async function () {
-    if (!("Notification" in window)) { toast("この端末は通知に未対応です", "bad"); return false; }
+    if (!("Notification" in window)) { toast("この端末は通知に未対応です（iPhoneはSafariで『ホーム画面に追加』してから）", "bad"); return false; }
     const p = await Notification.requestPermission();
-    if (p === "granted") { toast("プッシュ通知をオンにしました", "ok"); window.pwaNotify("通知をオンにしました", "予約の承認やメッセージをお知らせします。", "hauler-home.html", "approved"); return true; }
+    if (p === "granted") {
+      const ok = await subscribePush();
+      toast(ok ? "プッシュ通知をオンにしました（この端末を登録）" : "通知はONですが端末登録に失敗しました", ok ? "ok" : "bad");
+      window.pwaNotify("通知をオンにしました", "予約の承認やメッセージをお知らせします。", "hauler-home.html", "approved");
+      return true;
+    }
     toast(p === "denied" ? "通知がブロックされています（端末設定から許可してください）" : "通知は許可されませんでした", "bad"); return false;
   };
   window.notifState = () => ("Notification" in window ? Notification.permission : "unsupported");
