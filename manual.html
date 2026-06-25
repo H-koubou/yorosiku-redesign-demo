@@ -39,9 +39,10 @@
   table.est .p { font-family:var(--mono); font-weight:700; white-space:nowrap; }
   .foot { margin-top:auto; padding-top:18px; display:flex; align-items:center; gap:10px; color:var(--muted); font-size:12px; }
   .nav { position:fixed; bottom:18px; right:22px; display:flex; align-items:center; gap:10px; z-index:10; }
-  .nav button { width:42px; height:42px; border-radius:11px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); color:#fff; font-size:18px; cursor:pointer; }
-  .slide.active:not(.dark) ~ .nav button {}
-  .counter { position:fixed; bottom:26px; left:24px; color:#6f8b82; font-family:var(--mono); font-size:13px; z-index:10; }
+  .nav button { width:46px; height:46px; border-radius:12px; border:0; background:#14231f; color:#fff; font-size:21px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.28); }
+  .nav button:hover { background:#0d7a64; }
+  .counter { position:fixed; bottom:26px; left:24px; color:var(--ink-2); font-family:var(--mono); font-size:13px; z-index:10; background:rgba(255,255,255,.7); padding:2px 8px; border-radius:6px; }
+  .slide.dark ~ .counter, body:has(.slide.dark.active) .counter { }
   .hint2 { font-size:12px; color:var(--muted); margin-top:6px; }
   @media print {
     body { overflow:visible; } .deck { height:auto; }
@@ -116,12 +117,12 @@
     <div class="grid2">
       <div>
         <ol class="steps">
-          <li>スマホの <b>Safari（iPhone）／Chrome（Android）</b> で右のQRを読む</li>
-          <li>iPhone：共有ボタン → <b>「ホーム画面に追加」</b></li>
-          <li>ホーム画面の <b>アイコンから起動</b>（全画面アプリに）</li>
-          <li>予約カレンダー→<b>申請</b>→マイ予約→<b>受付QR</b>を体験</li>
+          <li>スマホで右のQRを読む</li>
+          <li><b>iPhone（Safari）</b>：共有ボタン → 「ホーム画面に追加」</li>
+          <li><b>Android（Chrome）</b>：メニュー(︙) → 「アプリをインストール」/「ホーム画面に追加」</li>
+          <li>ホーム画面の <b>アイコンから起動</b> → 予約カレンダー→<b>申請</b>→マイ予約→<b>受付QR</b></li>
         </ol>
-        <div class="note">iPhoneの通知は「Safariでホーム画面に追加したアプリ」でのみ有効（iOSの仕様）。必ずインストールしてから通知をオンに。</div>
+        <div class="note"><b>iPhone</b>は「Safariでホーム画面に追加したアプリ」でのみ通知が有効（iOS仕様）。必ずインストールしてから通知ON。<b>Android</b>はChromeで許可するだけで通知が使えます。</div>
       </div>
       <div class="qrbox">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=https%3A%2F%2Fh-koubou.github.io%2Fyorosiku-redesign-demo%2Fhauler-home.html" alt="運搬業者アプリのQR">
@@ -163,8 +164,9 @@
     <div class="eyebrow">NOTES</div><h2>ご確認・前提</h2>
     <ol class="steps">
       <li><b>本番のプッシュ通知・インストールには独自ドメインのHTTPS（SSL）</b>が必要です</li>
-      <li><b>iPhoneの通知</b>はSafariで「ホーム画面に追加」したアプリのみ（iOS 16.4以降）</li>
-      <li><b>Macのデスクトップ通知</b>はChrome推奨。macOSシステム設定→通知でChromeを許可</li>
+      <li><b>iPhoneの通知</b>はSafariで「ホーム画面に追加」したアプリのみ（iOS 16.4以降）。Androidは Chrome でそのまま可</li>
+      <li><b>Windowsの通知</b>は Chrome / Edge で標準対応（アドレスバーの⊞でインストールすればアプリ通知に）。出ないときは Windows設定→システム→通知 を許可＋集中モード(フォーカスアシスト)をオフ</li>
+      <li><b>Macの通知</b>は Chrome 推奨。macOSシステム設定→通知で Chrome を許可（事務所運用は「受付チャイム」が確実）</li>
       <li>デモは<b>クリック可能な試作</b>（保存・送信は擬似）。データは匿名サンプル</li>
       <li><b>計量器(スケール)連携・電子マニフェスト(JWNET)・写真AI</b>等は次フェーズの個別実装</li>
     </ol>
@@ -172,18 +174,19 @@
 
   <!-- 9 進め方・見積 -->
   <section class="slide">
-    <div class="eyebrow">PLAN</div><h2>進め方と概算（税別・提案用レンジ）</h2>
+    <div class="eyebrow">PLAN</div><h2>進め方（段階的に進めます）</h2>
+    <p class="sub" style="margin-bottom:16px">いきなり全部ではなく、まず要件定義から。リスクを抑えて段階的に進めます。</p>
     <table class="est">
-      <thead><tr><th style="width:30px"></th><th>ステップ</th><th>内容</th><th>目安</th><th>期間</th></tr></thead>
+      <thead><tr><th style="width:30px"></th><th>ステップ</th><th>内容</th><th>期間の目安</th></tr></thead>
       <tbody>
-        <tr><td class="p">1</td><td>要件定義・画面設計</td><td>現行機能の棚卸し・項目/権限の確定</td><td class="p">¥30〜60万</td><td>2〜3週</td></tr>
-        <tr><td class="p">2</td><td>フロント実装（全画面）</td><td>管理コンソール＋運搬業者PWA</td><td class="p">¥120〜220万</td><td>6〜10週</td></tr>
-        <tr><td class="p">3</td><td>通知・チャット基盤</td><td>Web Push＋施設⇄業者メッセージ</td><td class="p">¥40〜80万</td><td>2〜4週</td></tr>
-        <tr><td class="p">4</td><td>既存連携・データ移行</td><td>現行DB／計量・マニフェスト等（個別見積）</td><td class="p">別途</td><td>—</td></tr>
-        <tr><td class="p">5</td><td>運用・保守</td><td>ホスティング・改善対応</td><td class="p">月 ¥3〜8万</td><td>継続</td></tr>
+        <tr><td class="p">1</td><td>要件定義・画面設計</td><td>現行機能の棚卸し・項目/権限の確定・画面仕様の合意</td><td>2〜3週</td></tr>
+        <tr><td class="p">2</td><td>フロント実装（全画面）</td><td>管理コンソール＋運搬業者PWA</td><td>6〜10週</td></tr>
+        <tr><td class="p">3</td><td>通知・チャット基盤</td><td>Web Push＋施設⇄業者メッセージ</td><td>2〜4週</td></tr>
+        <tr><td class="p">4</td><td>既存連携・データ移行</td><td>現行DB／計量・マニフェスト等</td><td>個別</td></tr>
+        <tr><td class="p">5</td><td>運用・保守</td><td>ホスティング・改善対応</td><td>継続</td></tr>
       </tbody>
     </table>
-    <p class="hint2">※ 配車管理システムは別システムのため別途お見積り。</p>
+    <p class="hint2">※ 費用は別途お見積りいたします。配車管理システムは別システムです。</p>
   </section>
 
   <!-- 10 次のステップ -->
