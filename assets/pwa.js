@@ -111,9 +111,9 @@
     try {
       if ("serviceWorker" in navigator && "Notification" in window && Notification.permission === "granted") {
         const reg = await navigator.serviceWorker.ready;
-        reg.showNotification(title, { body, icon: "assets/icon.svg", badge: "assets/icon.svg", data: url || "hauler-home.html", vibrate: [80, 40, 80] });
+        reg.showNotification(title, { body, icon: "assets/icon-192.png", badge: "assets/icon-192.png", data: url || "hauler-home.html", vibrate: [80, 40, 80] });
       } else if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(title, { body, icon: "assets/icon.svg" });
+        new Notification(title, { body, icon: "assets/icon-192.png" });
       }
     } catch (_) {}
   };

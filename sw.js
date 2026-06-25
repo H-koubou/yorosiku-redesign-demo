@@ -10,7 +10,7 @@ const ASSETS = [
   "aozora-home.html", "aozora-apply.html", "aozora-calendar.html", "aozora-chat.html",
   "assets/app.js", "manifest-admin.webmanifest",
   // 共通
-  "assets/styles.css", "assets/data.js", "assets/icon.svg",
+  "assets/styles.css", "assets/data.js", "assets/icon-192.png",
 ];
 
 self.addEventListener("install", (e) => {
@@ -41,7 +41,7 @@ self.addEventListener("push", (e) => {
   let d = { title: "あおぞら予ろシク", body: "新しい通知があります", url: "hauler-home.html" };
   try { if (e.data) d = Object.assign(d, e.data.json()); } catch (_) {}
   e.waitUntil(self.registration.showNotification(d.title, {
-    body: d.body, icon: "assets/icon.svg", badge: "assets/icon.svg",
+    body: d.body, icon: "assets/icon-192.png", badge: "assets/icon-192.png",
     vibrate: [80, 40, 80], data: d.url, tag: d.tag || "yorosiku",
   }));
 });

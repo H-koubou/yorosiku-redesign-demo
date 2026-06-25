@@ -176,9 +176,9 @@
     try {
       if ("serviceWorker" in navigator && hasN() && Notification.permission === "granted") {
         const reg = await navigator.serviceWorker.ready;
-        reg.showNotification(title, { body, icon: "assets/icon.svg", badge: "assets/icon.svg", data: url || "aozora-apply.html" });
+        reg.showNotification(title, { body, icon: "assets/icon-192.png", badge: "assets/icon-192.png", data: url || "aozora-apply.html" });
       } else if (hasN() && Notification.permission === "granted") {
-        new Notification(title, { body, icon: "assets/icon.svg" });
+        new Notification(title, { body, icon: "assets/icon-192.png" });
       }
     } catch (_) {}
   };
@@ -244,7 +244,7 @@
       const t = document.createElement("meta"); t.name = "theme-color"; t.content = "#0c2722"; head.appendChild(t);
     }
     if (!document.querySelector('link[rel="apple-touch-icon"]')) {
-      const a = document.createElement("link"); a.rel = "apple-touch-icon"; a.href = "assets/icon.svg"; head.appendChild(a);
+      const a = document.createElement("link"); a.rel = "apple-touch-icon"; a.href = "assets/icon-192.png"; head.appendChild(a);
     }
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   }
