@@ -37,12 +37,24 @@
           </div>
           <div class="divider"></div>
           <div class="form-section">
-            <div class="form-section-title"><span class="n">3</span>車両・特記</div>
+            <div class="form-section-title"><span class="n">3</span>車両</div>
             <div class="form-grid">
               <div class="field"><label class="label">車種 <span class="req">必須</span></label><select class="select" id="fCar"></select></div>
               <div class="field"><label class="label">台数 <span class="req">必須</span></label><div class="input-affix"><input class="input num" id="fUnits" type="number" min="1"><span class="suffix">台</span></div></div>
-              <div class="field col-2"><label class="label">特記事項 <span class="opt">任意</span></label><textarea class="textarea" id="fNote"></textarea></div>
             </div>
+          </div>
+          <div class="divider"></div>
+          <div class="form-section">
+            <div class="form-section-title"><span class="n">4</span>詳細・コメント</div>
+            <div class="field"><label class="label">廃棄物詳細・その他特記事項 <span class="opt">任意</span></label>
+              <textarea class="textarea" id="fNote" placeholder="例：排出事業者〇〇〇〇と合積み、〇回計量を希望"></textarea>
+              <span class="hint">※混合廃棄物の場合は内容（品目）を記載／※畳の枚数は上の欄に記載</span></div>
+            <div class="field" style="margin-top:14px"><label class="label">確認依頼 あおぞらコメント <span class="opt">任意</span></label>
+              <textarea class="textarea" id="fReqComment" placeholder="確認依頼の際に運搬業者へ伝える内容"></textarea>
+              <span class="hint">「確認依頼」を押したときに運搬業者へ送られるコメントです。</span></div>
+            <div class="field" style="margin-top:14px"><label class="label">メール用コメント <span class="opt">任意</span></label>
+              <textarea class="textarea" id="fMailComment"></textarea>
+              <span class="hint">「変更して承認」を押すとメールが送られ、そのメールにこのコメントが付きます。</span></div>
           </div>
         </div>
       </form>
@@ -52,7 +64,7 @@
           <div style="margin-bottom:12px" id="statusBox"></div>
           <div id="slot"></div>
           <div class="divider"></div>
-          <button class="btn btn-ok btn-lg" style="width:100%" id="approve">承認する</button>
+          <button class="btn btn-ok btn-lg" style="width:100%" id="approve">変更して承認</button>
           <div class="flex" style="gap:8px;margin-top:8px">
             <button class="btn btn-warn" style="flex:1" id="req">確認依頼</button>
             <button class="btn" style="flex:1" id="save">保存</button>
