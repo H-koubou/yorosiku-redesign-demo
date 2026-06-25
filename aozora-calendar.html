@@ -3,51 +3,67 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>カレンダー｜あおぞら予ろシク（リデザイン提案）</title>
+<title>カレンダー（品目予定管理）｜あおぞら予ろシク（リデザイン提案）</title>
 <link rel="stylesheet" href="assets/styles.css">
 <meta name="theme-color" content="#0c2722">
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
-
+<style>
+  /* お知らせ編集 */
+  .notice-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px; }
+  @media (max-width:880px){ .notice-grid { grid-template-columns:1fr; } }
+  .rte-bar { display:flex; gap:2px; flex-wrap:wrap; border:1px solid var(--line); border-bottom:0; border-radius:9px 9px 0 0; padding:6px; background:var(--surface-2); }
+  .rte-bar button { min-width:30px; height:28px; border:0; background:transparent; border-radius:6px; cursor:pointer; color:var(--ink-2); font-size:13px; font-weight:700; padding:0 6px; }
+  .rte-bar button:hover { background:var(--surface-3); }
+  .rte-bar .sw { width:18px; height:18px; border-radius:5px; border:1px solid var(--line); padding:0; }
+  .rte { border:1px solid var(--line); border-radius:0 0 9px 9px; min-height:150px; max-height:260px; overflow-y:auto; padding:12px 14px; font-size:13px; line-height:1.7; outline:none; background:var(--surface); }
+  .rte:focus { border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-soft); }
+  .rte p { margin:0 0 6px; } .rte b { font-weight:700; }
+  /* 月カレンダー（品目予定管理） */
+  .cal-cell { cursor:pointer; transition:background .1s ease, box-shadow .1s ease; min-height:118px; }
+  .cal-cell:hover { background:var(--brand-soft); box-shadow:inset 0 0 0 2px var(--brand); }
+  .cal-cell.is-blank { background:var(--surface-2); cursor:default; }
+  .cal-cell.is-blank:hover { background:var(--surface-2); box-shadow:none; }
+  .cal-cell.is-closed { background:var(--surface-2); }
+  .cal-cell-top { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+  .cap-line { display:flex; align-items:center; justify-content:space-between; font-size:11.5px; margin-top:3px; }
+  .cap-line .k { color:var(--muted); } .cap-line .v { font-family:var(--mono); font-weight:700; font-variant-numeric:tabular-nums; }
+  .cap-line .v.zero { color:var(--bad-ink); }
+  .cap-line .v.inf { color:var(--brand-strong); }
+  .mini-pill { font-size:10.5px; padding:2px 7px; }
+  .closed-tag { font-size:11px; color:var(--muted); font-weight:700; }
+</style>
 </head>
 <body>
 <div class="layout" data-app="aozora" data-screen="calendar" data-role="管理者"
-     data-company="株式会社あおぞら" data-title="カレンダー" data-date="2026-06-24 (水)">
+     data-company="株式会社あおぞら" data-title="カレンダー（品目予定管理）" data-date="2026-06-25 (木)">
   <main class="main">
     <div class="page">
       <div class="page-head">
-        <h1 class="page-title">搬入カレンダー</h1>
-        <p class="page-sub">AM / PM 各枠の受入残数を可視化。満枠はひと目で分かり、ダブルブッキングを防ぎます。</p>
+        <h1 class="page-title">カレンダー（品目予定管理）</h1>
+        <p class="page-sub">予約者トップに表示されるお知らせと、各日の営業状態・受入上限（車両・畳）を設定します。</p>
       </div>
 
       <div class="toolbar">
-        <div class="seg" id="viewSeg">
-          <button class="is-active" data-v="week">週</button>
-          <button data-v="month">月</button>
-        </div>
-        <button class="icon-btn" aria-label="前の週"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <div class="flex" style="font-weight:700">2026年6月22日 – 28日</div>
-        <button class="icon-btn" aria-label="次の週"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M9 18l6-6-6-6"/></svg></button>
+        <div class="field" style="gap:4px"><label class="label" style="font-size:11px">工場</label>
+          <select class="select" id="selFactory" style="min-width:170px"><option>あおぞら 本社工場</option><option>あおぞら 第2工場</option></select></div>
+        <div class="field" style="gap:4px"><label class="label" style="font-size:11px">品目グループ</label>
+          <select class="select" id="selGroup" style="min-width:170px"><option>畳</option><option>混合廃棄物</option><option>その他品目</option></select></div>
         <div class="grow"></div>
-        <div class="legend">
-          <span><i style="background:var(--ok)"></i>空き</span>
-          <span><i style="background:var(--warn)"></i>残りわずか</span>
-          <span><i style="background:var(--bad)"></i>満枠</span>
-        </div>
-        <a class="btn btn-primary" href="aozora-add.html">新規搬入予約</a>
+        <button class="icon-btn" id="prevM" aria-label="前の月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div style="font-weight:700;min-width:118px;text-align:center" id="monthLabel">2026年 6月</div>
+        <button class="icon-btn" id="nextM" aria-label="次の月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M9 18l6-6-6-6"/></svg></button>
       </div>
 
-      <div id="weekView">
-        <div class="cal">
-          <div class="cal-grid" id="dowRow"></div>
-          <div class="cal-grid" id="weekGrid"></div>
-        </div>
-        <p class="hint" style="margin-top:12px">枠（AM/PM）をクリックすると、その枠の予約一覧と空き状況を確認できます。1枠あたりの受入上限は <b class="mono">12台</b>（工場マスターで設定）。</p>
-      </div>
+      <!-- お知らせ編集（予約者トップに表示） -->
+      <div class="notice-grid" id="notices"></div>
 
-      <div id="monthView" style="display:none">
-        <div class="cal"><div class="cal-grid" id="mDow"></div><div class="cal-grid" id="monthGrid"></div></div>
+      <!-- 月カレンダー -->
+      <div class="cal">
+        <div class="cal-grid" id="dowRow"></div>
+        <div class="cal-grid" id="monthGrid"></div>
       </div>
+      <p class="hint" style="margin-top:12px">日付をクリックすると、その日の<b>営業状態</b>・<b>車両/畳の受入上限</b>を設定できます。設定内容は予約者のカレンダー・申請画面に反映されます。</p>
     </div>
   </main>
 </div>
@@ -56,73 +72,144 @@
 <script src="assets/app.js"></script>
 <script>
 (function () {
-  const CAP = DATA.CAP;
-  const dows = ["月","火","水","木","金","土","日"];
+  const STATE = {
+    open:   { label:"営業日",   cls:"pill-ok",      hours:"08:00–16:30" },
+    ended:  { label:"受付終了", cls:"pill-neutral", hours:"08:00–16:30" },
+    closed: { label:"休業日",   cls:"pill-bad",     hours:"" },
+    am:     { label:"午前のみ", cls:"pill-warn",    hours:"08:00–12:00" },
+    pm:     { label:"午後のみ", cls:"pill-warn",    hours:"12:00–16:30" },
+  };
+  const num = n => n == null ? "無制限" : n.toLocaleString("ja-JP");
 
-  // --- DOW header ---
-  document.getElementById("dowRow").innerHTML = dows.map((d,i) =>
-    `<div class="cal-dow${i===5?' sat':''}${i===6?' sun':''}">${d}</div>`).join("");
-
-  // --- Week grid with capacity gauges (the signature) ---
-  function slot(label, used) {
-    const full = used >= CAP;
-    return `<div class="day-slot${full?' full':''}" data-slot="${label}">
-      <div class="day-slot-top"><span class="day-slot-label">${label}</span>
-        <span class="td-sub mono">${full?'満枠':used+'件'}</span></div>
-      ${UI.gauge("台数", used, CAP)}</div>`;
+  /* ---- お知らせ編集（2枠） ---- */
+  function rte(key, data) {
+    return `<div class="card"><div class="card-head" style="padding:13px 16px"><b class="card-title">${data.label}</b>
+        <span class="hint" style="margin-left:auto">予約者トップに表示</span></div>
+      <div class="card-body" style="padding:14px 16px">
+        <div class="rte-bar" role="toolbar" aria-label="書式">
+          <button type="button" data-cmd="bold" title="太字">B</button>
+          <button type="button" data-cmd="italic" title="斜体" style="font-style:italic">I</button>
+          <button type="button" data-cmd="underline" title="下線" style="text-decoration:underline">U</button>
+          <button type="button" class="sw" data-color="#c0392b" title="赤" style="background:#c0392b"></button>
+          <button type="button" class="sw" data-color="#14231f" title="黒" style="background:#14231f"></button>
+          <button type="button" data-cmd="insertUnorderedList" title="箇条書き">•</button>
+        </div>
+        <div class="rte" contenteditable="true" data-rte="${key}">${data.html}</div>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn btn-primary btn-sm" data-reg="${key}">登録</button></div>
+      </div></div>`;
   }
-  document.getElementById("weekGrid").innerHTML = DATA.week.map(d => `
-    <div class="day${d.today?' is-today':''}">
-      <div class="flex between"><span class="day-num">${d.date.split('/')[1]}</span></div>
-      ${slot("AM", d.am)}${slot("PM", d.pm)}
-    </div>`).join("");
+  document.getElementById("notices").innerHTML = rte("updated", DATA.calNotices.updated) + rte("notice", DATA.calNotices.notice);
+  document.getElementById("notices").addEventListener("click", e => {
+    const fmt = e.target.closest("[data-cmd]"), col = e.target.closest("[data-color]"), reg = e.target.closest("[data-reg]");
+    if (fmt || col) {
+      const bar = e.target.closest(".card-body"); const ed = bar.querySelector(".rte"); ed.focus();
+      if (fmt) document.execCommand(fmt.dataset.cmd, false, null);
+      else document.execCommand("foreColor", false, col.dataset.color);
+      return;
+    }
+    if (reg) {
+      const key = reg.dataset.reg; const ed = document.querySelector(`.rte[data-rte="${key}"]`);
+      DATA.calNotices[key].html = ed.innerHTML;
+      toast("お知らせを更新しました（予約者トップに反映）", "ok");
+    }
+  });
 
-  // --- Slot drawer ---
-  document.getElementById("weekGrid").addEventListener("click", e => {
-    const s = e.target.closest(".day-slot"); if (!s) return;
-    const day = e.target.closest(".day").querySelector(".day-num").textContent;
-    const label = s.dataset.slot;
-    const used = DATA.week.find(w => w.date.endsWith(day))[label.toLowerCase()];
-    const rows = DATA.confirmed.concat(DATA.applyQueue).filter(r => r.ampm === label).slice(0, used ? 3 : 0);
-    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">6月${day}日 ${label} 枠</div>
-        <h2 style="font-size:18px;margin-top:2px">受入状況</h2></div>
+  /* ---- 月カレンダー ---- */
+  const dows = ["日","月","火","水","木","金","土"];
+  document.getElementById("dowRow").innerHTML = dows.map((d, i) =>
+    `<div class="cal-dow${i === 0 ? " sun" : ""}${i === 6 ? " sat" : ""}">${d}</div>`).join("");
+
+  function statePill(s) { const st = STATE[s] || STATE.open; return `<span class="pill ${st.cls} mini-pill">${st.label}</span>`; }
+  function capLines(x) {
+    const carZero = x.car === 0, tatZero = x.tatami === 0;
+    return `<div class="cap-line"><span class="k">車両</span><span class="v ${x.car == null ? "inf" : carZero ? "zero" : ""}">${num(x.car)}${x.car == null ? "" : "台"}</span></div>
+      <div class="cap-line"><span class="k">畳</span><span class="v ${x.tatami == null ? "inf" : tatZero ? "zero" : ""}">${x.tatami == null ? "無制限" : num(x.tatami) + "枚"}</span></div>`;
+  }
+  function renderGrid() {
+    const lead = 1; // 2026/6/1 = 月曜 → 日曜始まりで先頭1セル空き
+    let cells = "";
+    for (let b = 0; b < lead; b++) cells += `<div class="day cal-cell is-blank"></div>`;
+    DATA.monthHauler.forEach(x => {
+      const st = STATE[x.state] || STATE.open;
+      cells += `<div class="day cal-cell is-${x.state}${x.today ? " is-today" : ""}" data-d="${x.d}">
+        <div class="cal-cell-top"><span class="day-num">${x.d}</span>${statePill(x.state)}</div>
+        ${x.state === "closed"
+          ? `<div style="margin:auto 0;text-align:center"><span class="closed-tag">休業日</span></div>`
+          : `<div style="margin-top:6px">${capLines(x)}${st.hours ? `<div class="cap-line" style="margin-top:5px"><span class="k">時間</span><span class="v" style="font-size:10.5px">${st.hours}</span></div>` : ""}</div>`}
+      </div>`;
+    });
+    document.getElementById("monthGrid").innerHTML = cells;
+  }
+  renderGrid();
+
+  /* ---- 日付クリック → 編集ドロワー ---- */
+  function dayDrawer(d) {
+    const x = DATA.monthHauler.find(m => m.d === d); if (!x) return;
+    const stOpts = Object.entries(STATE).map(([k, v]) => `<option value="${k}" ${x.state === k ? "selected" : ""}>${v.label}${v.hours ? "（" + v.hours + "）" : ""}</option>`).join("");
+    const carInf = x.car == null, tatInf = x.tatami == null;
+    openDrawer(`
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">品目予定管理 ／ 2026年6月${d}日</div>
+        <h2 style="font-size:18px;margin-top:2px">この日の設定</h2></div>
         <button class="icon-btn" data-close>${ICONS.x}</button></div>
       <div class="drawer-body">
-        <div style="margin-bottom:16px">${UI.gauge("台数 受入残", used, CAP)}</div>
-        <div class="form-section-title"><span class="n">${rows.length}</span>この枠の予約</div>
-        ${rows.map(r => `<div class="repeater-row" style="grid-template-columns:1fr">
-          <div class="cell-stack"><span class="td-strong">${r.carrier}</span>
-          <span class="td-sub">${UI.waste(r.waste)} ・ ${r.car} ×${r.units}台</span></div></div>`).join("") ||
-          `<p class="hint">この枠の予約はまだありません。</p>`}
+        <div class="field" style="margin-bottom:16px"><label class="label">営業状態</label>
+          <select class="select" id="f-state">${stOpts}</select></div>
+        <div class="field" id="hoursRow" style="margin-bottom:16px"><label class="label">営業時間</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="input" id="f-h1" type="time" value="08:00" style="max-width:130px"><span class="hint">〜</span>
+            <input class="input" id="f-h2" type="time" value="16:30" style="max-width:130px"></div></div>
+        <div class="field" style="margin-bottom:8px"><label class="label">車両の受入可能残数</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="input-affix" style="flex:1"><input class="input" id="f-car" type="number" min="0" value="${carInf ? "" : x.car}" placeholder="台数"><span class="suffix">台</span></div>
+            <label class="label" style="white-space:nowrap"><input type="checkbox" id="f-car-inf" ${carInf ? "checked" : ""} style="accent-color:var(--brand)"> 無制限</label></div></div>
+        <div class="field"><label class="label">畳の受入可能残数</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="input-affix" style="flex:1"><input class="input" id="f-tat" type="number" min="0" value="${tatInf ? "" : x.tatami}" placeholder="枚数"><span class="suffix">枚</span></div>
+            <label class="label" style="white-space:nowrap"><input type="checkbox" id="f-tat-inf" ${tatInf ? "checked" : ""} style="accent-color:var(--brand)"> 無制限</label></div>
+          <span class="hint" style="margin-top:6px">残数は申請の承認に応じて自動で減ります。ここでは当日の上限を設定します。</span></div>
       </div>
-      <div class="drawer-foot"><a class="btn btn-primary" style="flex:1" href="aozora-add.html">この枠に新規予約</a></div>`);
-  });
+      <div class="drawer-foot">
+        <button class="btn" style="flex:1" data-close>キャンセル</button>
+        <button class="btn btn-primary" style="flex:1" id="saveBtn">保存する</button>
+      </div>`);
 
-  // --- Month view (June 2026, Monday start; 6/1 = Mon) ---
-  document.getElementById("mDow").innerHTML = document.getElementById("dowRow").innerHTML;
-  let cells = "";
-  for (let d = 1; d <= 30; d++) {
-    const used = ((d * 5) % (CAP + 4)) + (d % 3); // deterministic demo load
-    const pct = Math.min(100, Math.round(used / CAP * 100));
-    const full = used >= CAP, mid = !full && pct >= 70;
-    const today = d === 24;
-    cells += `<div class="day${today?' is-today':''}" style="min-height:96px">
-      <span class="day-num">${d}</span>
-      <div class="gauge${full?' is-full':mid?' is-mid':''}" style="margin-top:auto">
-        <div class="gauge-top"><span class="gauge-name">受入</span><span class="gauge-val">${full?'満':used}<small>/${CAP}</small></span></div>
-        <div class="gauge-track"><div class="gauge-fill" style="width:${pct}%"></div></div></div></div>`;
+    const stSel = document.getElementById("f-state"), hoursRow = document.getElementById("hoursRow");
+    const carInfEl = document.getElementById("f-car-inf"), tatInfEl = document.getElementById("f-tat-inf");
+    function syncState() {
+      const s = stSel.value; const closed = s === "closed";
+      hoursRow.style.display = closed ? "none" : "";
+      if (s === "am") { document.getElementById("f-h1").value = "08:00"; document.getElementById("f-h2").value = "12:00"; }
+      else if (s === "pm") { document.getElementById("f-h1").value = "12:00"; document.getElementById("f-h2").value = "16:30"; }
+      document.getElementById("f-car").disabled = closed; document.getElementById("f-tat").disabled = closed;
+    }
+    function syncInf() {
+      document.getElementById("f-car").disabled = carInfEl.checked || stSel.value === "closed";
+      document.getElementById("f-tat").disabled = tatInfEl.checked || stSel.value === "closed";
+    }
+    stSel.addEventListener("change", () => { syncState(); syncInf(); });
+    carInfEl.addEventListener("change", syncInf); tatInfEl.addEventListener("change", syncInf);
+    syncState(); syncInf();
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      x.state = stSel.value;
+      if (x.state === "closed") { /* 残数は保持 */ }
+      else {
+        x.car = carInfEl.checked ? null : Math.max(0, parseInt(document.getElementById("f-car").value || "0", 10));
+        x.tatami = tatInfEl.checked ? null : Math.max(0, parseInt(document.getElementById("f-tat").value || "0", 10));
+      }
+      closeDrawer(); renderGrid(); toast(`6月${d}日の設定を保存しました`, "ok");
+    });
   }
-  document.getElementById("monthGrid").innerHTML = cells;
-
-  // --- View toggle ---
-  document.getElementById("viewSeg").addEventListener("click", e => {
-    const b = e.target.closest("button"); if (!b) return;
-    document.querySelectorAll("#viewSeg button").forEach(x => x.classList.remove("is-active"));
-    b.classList.add("is-active");
-    const week = b.dataset.v === "week";
-    document.getElementById("weekView").style.display = week ? "" : "none";
-    document.getElementById("monthView").style.display = week ? "none" : "";
+  document.getElementById("monthGrid").addEventListener("click", e => {
+    const cell = e.target.closest(".cal-cell[data-d]"); if (!cell) return;
+    dayDrawer(+cell.dataset.d);
   });
+
+  /* ---- 月送り（デモ：当月固定） ---- */
+  document.getElementById("prevM").addEventListener("click", () => toast("前月の表示はデモでは固定です", "default"));
+  document.getElementById("nextM").addEventListener("click", () => toast("翌月の表示はデモでは固定です", "default"));
+  document.getElementById("selFactory").addEventListener("change", e => toast(e.target.value + " のカレンダーを表示（デモ）", "default"));
+  document.getElementById("selGroup").addEventListener("change", e => toast("品目グループ：" + e.target.value + "（デモ）", "default"));
 })();
 </script>
 </body>

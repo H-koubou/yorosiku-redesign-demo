@@ -27,9 +27,17 @@
           { id: "reception", label: "受付・計量", href: "aozora-reception.html", icon: "scale" },
           { id: "add",       label: "搬入予約登録", href: "aozora-add.html", icon: "plus" },
         ]},
-        { label: "マスター・設定", items: [
-          { id: "factory",  label: "工場",     href: "aozora-factory.html",  icon: "factory" },
-          { id: "basic",    label: "基本情報", href: "aozora-basic.html",    icon: "info" },
+        { label: "基本情報（マスター）", items: [
+          { id: "factory",  label: "工場",          href: "aozora-factory.html",  icon: "factory" },
+          { id: "user",     label: "ユーザー",      href: "aozora-user.html",     icon: "users" },
+          { id: "project",  label: "会社（予約者）", href: "aozora-project.html",  icon: "home" },
+          { id: "vehicle",  label: "車種",          href: "aozora-vehicle.html",  icon: "truck" },
+        ]},
+        { label: "メール配信", items: [
+          { id: "mail",     label: "メール一斉配信", href: "aozora-mail.html",   icon: "send" },
+          { id: "group",    label: "メールグループ", href: "aozora-group.html",  icon: "inbox" },
+        ]},
+        { label: "設定", items: [
           { id: "settings", label: "設定",     href: "aozora-settings.html", icon: "gear" },
         ]},
       ],

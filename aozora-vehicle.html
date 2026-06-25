@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>車種管理｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<style>
+  .list-meta .n { font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .row-actions { display:flex; gap:6px; }
+  .veh-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+  .veh { display:flex; align-items:center; gap:11px; padding:12px 13px; border:1px solid var(--line); border-radius:11px; background:var(--surface); box-shadow:var(--shadow-1); }
+  .veh .ic { width:34px; height:34px; flex:none; border-radius:9px; background:var(--brand-soft); color:var(--brand-strong); display:grid; place-items:center; }
+  .veh .ic svg { width:18px; height:18px; }
+  .veh .nm { font-weight:600; font-size:13.5px; } .veh .cd { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .veh .ed { margin-left:auto; }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="vehicle" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="基本情報 ／ 車種管理" data-date="2026-06-25 (木)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">車種管理</h1>
+      <p class="page-sub">搬入予約登録で選択する車種（4tアームロール・大型ダンプ 等）のマスター。</p></div>
+
+    <div class="toolbar">
+      <input class="input" id="q" placeholder="名称・コードで検索" style="max-width:300px;flex:1" aria-label="検索">
+      <button class="btn" id="searchBtn">検索</button>
+      <div class="grow"></div>
+      <span class="list-meta"><span class="n" id="meta"></span></span>
+      <button class="btn btn-primary" id="addBtn">＋ 新規追加</button>
+    </div>
+
+    <div class="veh-grid" id="grid"></div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  let q = "";
+  const filtered = () => {
+    const k = q.trim().toLowerCase();
+    return k ? DATA.vehicleTypes.filter(v => (v.name + " " + v.code).toLowerCase().includes(k)) : DATA.vehicleTypes;
+  };
+  function render() {
+    const list = filtered();
+    document.getElementById("meta").textContent = `データ数：${DATA.vehicleTypes.length}`;
+    document.getElementById("grid").innerHTML = list.map(v => {
+      const i = DATA.vehicleTypes.indexOf(v);
+      return `<div class="veh"><div class="ic">${ICONS.truck}</div>
+        <div style="min-width:0"><div class="nm">${v.name}</div><div class="cd">${v.code}</div></div>
+        <button class="btn btn-ghost btn-sm ed act-edit" data-i="${i}">編集</button></div>`;
+    }).join("") || `<div class="empty" style="grid-column:1/-1"><h3>該当する車種がありません</h3></div>`;
+  }
+  function editDrawer(i) {
+    const v = i != null ? DATA.vehicleTypes[i] : { code:"rm" + Math.random().toString(36).slice(2, 12), name:"", note:"" };
+    openDrawer(`
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">車種管理</div>
+        <h2 style="font-size:18px;margin-top:2px">${i != null ? "車種を編集" : "新規車種登録"}</h2></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body"><div class="form-grid">
+        <div class="field col-2"><label class="label">車種名称 <span class="req">必須</span></label><input class="input" id="f-name" value="${v.name}" placeholder="例）4tアームロール"></div>
+        <div class="field col-2"><label class="label">車種コード <span class="req">必須</span></label><input class="input td-mono" id="f-code" value="${v.code}"></div>
+        <div class="field col-2"><label class="label">備考</label><textarea class="textarea" id="f-note">${v.note || ""}</textarea></div>
+      </div></div>
+      <div class="drawer-foot">
+        ${i != null ? `<button class="btn btn-danger" id="delBtn">削除</button>` : ""}
+        <button class="btn" style="flex:1" data-close>キャンセル</button>
+        <button class="btn btn-primary" style="flex:1" id="saveBtn">${i != null ? "保存する" : "登録する"}</button>
+      </div>`);
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const name = document.getElementById("f-name").value.trim();
+      if (!name) { toast("車種名称は必須です", "bad"); return; }
+      const rec = { code:document.getElementById("f-code").value.trim(), name, note:document.getElementById("f-note").value.trim() };
+      if (i != null) DATA.vehicleTypes[i] = rec; else DATA.vehicleTypes.unshift(rec);
+      closeDrawer(); render(); toast(i != null ? "車種を保存しました" : "車種を登録しました", "ok");
+    });
+    const del = document.getElementById("delBtn");
+    if (del) del.addEventListener("click", () => { if (confirm(`「${v.name}」を削除しますか？`)) { DATA.vehicleTypes.splice(i, 1); closeDrawer(); render(); toast("車種を削除しました", "default"); } });
+  }
+  document.getElementById("grid").addEventListener("click", e => { const ed = e.target.closest(".act-edit"); if (ed) editDrawer(+ed.dataset.i); });
+  document.getElementById("addBtn").addEventListener("click", () => editDrawer(null));
+  document.getElementById("searchBtn").addEventListener("click", () => { q = document.getElementById("q").value; render(); });
+  document.getElementById("q").addEventListener("input", e => { q = e.target.value; render(); });
+  render();
+})();
+</script>
+</body></html>

@@ -1,6 +1,6 @@
 /* あおぞら予ろシク 運搬業者ポータル — Service Worker
    アプリシェルのオフラインキャッシュ ＋ プッシュ通知の受信。 */
-const CACHE = "yorosiku-pwa-v3";
+const CACHE = "yorosiku-pwa-v4";
 const ASSETS = [
   // 予約者アプリ
   "hauler-home.html", "hauler-book.html", "hauler-add.html",
@@ -8,6 +8,7 @@ const ASSETS = [
   "assets/pwa.css", "assets/pwa.js", "manifest.webmanifest",
   // 管理コンソール
   "aozora-home.html", "aozora-apply.html", "aozora-calendar.html", "aozora-chat.html",
+  "aozora-user.html", "aozora-project.html", "aozora-vehicle.html", "aozora-mail.html", "aozora-group.html",
   "assets/app.js", "manifest-admin.webmanifest",
   // 共通
   "assets/styles.css", "assets/data.js", "assets/icon-192.png",

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ユーザー管理｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<style>
+  .list-meta { display:flex; align-items:center; gap:10px; margin:2px 2px 12px; }
+  .list-meta .n { font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .pager { display:flex; align-items:center; gap:6px; justify-content:center; padding:16px 0 2px; }
+  .pager button { min-width:34px; height:34px; padding:0 9px; border:1px solid var(--line); background:var(--surface); border-radius:8px; font:600 13px/1 var(--font); color:var(--ink-2); cursor:pointer; }
+  .pager button:hover { background:var(--surface-2); }
+  .pager button.is-active { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .pager button:disabled { opacity:.4; cursor:default; }
+  .role-pill { font-size:11px; }
+  .row-actions { display:flex; gap:6px; }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="user" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="基本情報 ／ ユーザー管理" data-date="2026-06-25 (木)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">ユーザー管理</h1>
+      <p class="page-sub">予約者・社内のログインアカウントを管理。権限（操作制限）や所属会社、ログイン有効期間を設定します。</p></div>
+
+    <div class="toolbar">
+      <div class="input-affix" style="max-width:320px;flex:1">
+        <input class="input" id="q" placeholder="ID・名前・メール・会社で検索" aria-label="検索">
+      </div>
+      <button class="btn" id="searchBtn">検索</button>
+      <div class="grow"></div>
+      <button class="btn btn-primary" id="addBtn">＋ 新規追加</button>
+    </div>
+
+    <div class="card card-pad">
+      <div class="list-meta" style="padding:14px 16px 0"><span class="n" id="meta"></span></div>
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th class="col-actions">操作</th><th>ユーザー名</th><th>メールアドレス（ID）</th><th>権限</th><th>所属会社</th><th>ステータス</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <div class="pager" id="pager"></div>
+    </div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const PER = 10;
+  let page = 1, q = "";
+  const ROLE_CLS = { "システム開発者":"pill-brand", "社内管理者":"pill-warn", "社内閲覧者":"pill-neutral", "予約者":"pill-ok" };
+  const ST_CLS = { "本会員":"pill-ok", "仮登録":"pill-warn", "退会":"pill-neutral" };
+  const GENDERS = ["会社","女性","男性","その他"];
+  const STATUSES = ["本会員","仮登録","退会"];
+  const ROLES = ["システム開発者","社内管理者","社内閲覧者","予約者"];
+
+  const filtered = () => {
+    const k = q.trim().toLowerCase();
+    if (!k) return DATA.accounts;
+    return DATA.accounts.filter(u => [u.name, u.email, u.company, u.role, u.kana].join(" ").toLowerCase().includes(k));
+  };
+
+  function render() {
+    const list = filtered();
+    const pages = Math.max(1, Math.ceil(list.length / PER));
+    if (page > pages) page = pages;
+    const slice = list.slice((page - 1) * PER, page * PER);
+    document.getElementById("meta").textContent = `${page}/${pages}　データ数：${list.length}`;
+    document.getElementById("rows").innerHTML = slice.map(u => {
+      const i = DATA.accounts.indexOf(u);
+      return `<tr data-i="${i}">
+        <td class="col-actions"><div class="row-actions">
+          <button class="btn btn-ghost btn-sm act-edit" data-i="${i}">編集</button>
+          <button class="btn btn-ghost btn-sm act-del" data-i="${i}" style="color:var(--bad-ink)">削除</button>
+        </div></td>
+        <td class="td-strong">${u.name}<div class="td-sub">${u.kana || ""}</div></td>
+        <td class="td-mono">${u.email}</td>
+        <td><span class="pill role-pill ${ROLE_CLS[u.role] || "pill-neutral"}"><span class="dot"></span>${u.role}</span></td>
+        <td>${u.company || "—"}${u.dept ? `<div class="td-sub">${u.dept}</div>` : ""}</td>
+        <td><span class="pill role-pill ${ST_CLS[u.status] || "pill-neutral"}"><span class="dot"></span>${u.status}</span></td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="6"><div class="empty"><h3>該当するユーザーがありません</h3><p>検索条件を変えてお試しください。</p></div></td></tr>`;
+
+    let pg = `<button ${page <= 1 ? "disabled" : ""} data-p="${page - 1}">前へ</button>`;
+    for (let p = 1; p <= pages; p++) pg += `<button class="${p === page ? "is-active" : ""}" data-p="${p}">${p}</button>`;
+    pg += `<button ${page >= pages ? "disabled" : ""} data-p="${page + 1}">次へ</button>`;
+    document.getElementById("pager").innerHTML = pages > 1 ? pg : "";
+  }
+
+  function opt(list, sel) { return list.map(v => `<option ${v === sel ? "selected" : ""}>${v}</option>`).join(""); }
+
+  function editDrawer(i) {
+    const u = i != null ? DATA.accounts[i] : { email:"", name:"", kana:"", gender:"", company:"", dept:"", status:"本会員", role:"予約者", tel:"", note:"" };
+    const companyOpts = `<option value="">選択してください</option>` + DATA.companies.map(c => `<option ${c.name === u.company ? "selected" : ""}>${c.name}</option>`).join("");
+    openDrawer(`
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">ユーザー管理</div>
+        <h2 style="font-size:18px;margin-top:2px">${i != null ? "ユーザーを編集" : "新規ユーザー登録"}</h2></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body">
+        <div class="form-grid">
+          <div class="field col-2"><label class="label">メールアドレス <span class="req">必須</span></label>
+            <input class="input" id="f-email" value="${u.email}" placeholder="example@company.co.jp">
+            <span class="hint">このメールアドレスがログインIDになります。</span></div>
+          <div class="field"><label class="label">名前 <span class="req">必須</span></label><input class="input" id="f-name" value="${u.name}"></div>
+          <div class="field"><label class="label">カナ <span class="req">必須</span></label><input class="input" id="f-kana" value="${u.kana || ""}"></div>
+          <div class="field"><label class="label">パスワード</label><input class="input" id="f-pw" placeholder="未入力で初期値"></div>
+          <div class="field"><label class="label">電話番号</label><input class="input" id="f-tel" value="${u.tel || ""}"></div>
+          <div class="field"><label class="label">性別</label><select class="select" id="f-gender"><option value="">未選択</option>${opt(GENDERS, u.gender)}</select></div>
+          <div class="field"><label class="label">ステータス</label><select class="select" id="f-status">${opt(STATUSES, u.status)}</select></div>
+          <div class="field col-2"><label class="label">所属会社 <span class="req">必須</span></label><select class="select" id="f-company">${companyOpts}</select></div>
+          <div class="field"><label class="label">所属部署</label><input class="input" id="f-dept" value="${u.dept || ""}"></div>
+          <div class="field"><label class="label">操作制限（権限）</label><select class="select" id="f-role">${opt(ROLES, u.role)}</select>
+            <span class="hint">予約者は操作制限はありません。</span></div>
+          <div class="field"><label class="label">ログイン期間開始</label><input class="input" id="f-start" type="date" value=""><span class="hint">空白で本日から</span></div>
+          <div class="field"><label class="label">ログイン期間終了</label><input class="input" id="f-end" type="date" value=""><span class="hint">空白で無期限</span></div>
+          <div class="field col-2"><label class="label">備考</label><textarea class="textarea" id="f-note">${u.note || ""}</textarea></div>
+        </div>
+      </div>
+      <div class="drawer-foot">
+        <button class="btn" style="flex:1" data-close>キャンセル</button>
+        <button class="btn btn-primary" style="flex:1" id="saveBtn">${i != null ? "保存する" : "登録する"}</button>
+      </div>`);
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const g = id => document.getElementById(id).value.trim();
+      if (!g("f-email") || !g("f-name") || !g("f-kana")) { toast("メール・名前・カナは必須です", "bad"); return; }
+      const rec = { email:g("f-email"), name:g("f-name"), kana:g("f-kana"), gender:g("f-gender"),
+        company:g("f-company"), dept:g("f-dept"), status:g("f-status"), role:g("f-role"), tel:g("f-tel"), note:g("f-note") };
+      if (i != null) DATA.accounts[i] = rec; else DATA.accounts.unshift(rec);
+      closeDrawer(); render(); toast(i != null ? "ユーザーを保存しました" : "ユーザーを登録しました", "ok");
+    });
+  }
+
+  document.getElementById("rows").addEventListener("click", e => {
+    const ed = e.target.closest(".act-edit"), del = e.target.closest(".act-del"), tr = e.target.closest("tr[data-i]");
+    if (del) { const i = +del.dataset.i; const u = DATA.accounts[i];
+      if (confirm(`「${u.name}（${u.email}）」を削除しますか？`)) { DATA.accounts.splice(i, 1); render(); toast("ユーザーを削除しました", "default"); } return; }
+    if (ed) { editDrawer(+ed.dataset.i); return; }
+    if (tr) editDrawer(+tr.dataset.i);
+  });
+  document.getElementById("addBtn").addEventListener("click", () => editDrawer(null));
+  document.getElementById("searchBtn").addEventListener("click", () => { q = document.getElementById("q").value; page = 1; render(); });
+  document.getElementById("q").addEventListener("input", e => { q = e.target.value; page = 1; render(); });
+  document.getElementById("pager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b) return; page = +b.dataset.p; render(); window.scrollTo({ top:0, behavior:"smooth" }); });
+  render();
+})();
+</script>
+</body></html>

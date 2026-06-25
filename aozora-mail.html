@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>メール一斉配信｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<style>
+  .list-meta .n { font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .row-actions { display:flex; gap:6px; }
+  .rte-bar { display:flex; gap:2px; flex-wrap:wrap; border:1px solid var(--line); border-bottom:0; border-radius:9px 9px 0 0; padding:6px; background:var(--surface-2); }
+  .rte-bar button { width:30px; height:28px; border:0; background:transparent; border-radius:6px; cursor:pointer; color:var(--ink-2); font-size:13px; font-weight:700; }
+  .rte-bar button:hover { background:var(--surface-3); }
+  .rte { border:1px solid var(--line); border-radius:0 0 9px 9px; min-height:150px; padding:12px 14px; font-size:13.5px; line-height:1.7; outline:none; background:var(--surface); }
+  .rte:focus { border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-soft); }
+  .drop { border:1.5px dashed var(--line-strong); border-radius:11px; padding:20px; text-align:center; color:var(--muted); font-size:12.5px; cursor:pointer; background:var(--surface-2); }
+  .drop:hover { border-color:var(--brand); color:var(--brand-strong); }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="mail" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="基本情報 ／ メール一斉配信" data-date="2026-06-25 (木)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">メール一斉配信</h1>
+      <p class="page-sub">予約者へのお知らせメールを作成・予約配信。設定日時から1時間あたり約500件ずつ順次配信されます。</p></div>
+
+    <div class="toolbar">
+      <input class="input" id="q" placeholder="タイトル・送信先で検索" style="max-width:300px;flex:1" aria-label="検索">
+      <button class="btn" id="searchBtn">検索</button>
+      <div class="grow"></div>
+      <span class="list-meta"><span class="n" id="meta"></span></span>
+      <button class="btn btn-primary" id="addBtn">＋ 新規作成</button>
+    </div>
+
+    <div class="card card-pad"><div class="table-wrap"><table class="tbl">
+      <thead><tr><th class="col-actions">操作</th><th>状態</th><th>送信予定日時</th><th>タイトル</th><th>送信先</th><th>配信件数</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div></div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  let q = "";
+  const ST = { sent:["pill-ok","送信済"], scheduled:["pill-brand","配信予約"], draft:["pill-neutral","下書き"] };
+  const filtered = () => { const k = q.trim().toLowerCase(); return k ? DATA.mails.filter(m => (m.title + " " + m.to).toLowerCase().includes(k)) : DATA.mails; };
+
+  function render() {
+    const list = filtered();
+    document.getElementById("meta").textContent = `データ数：${DATA.mails.length}`;
+    document.getElementById("rows").innerHTML = list.map(m => {
+      const i = DATA.mails.indexOf(m); const [cls, label] = ST[m.status] || ST.draft;
+      return `<tr data-i="${i}">
+        <td class="col-actions"><div class="row-actions">
+          <button class="btn btn-ghost btn-sm act-edit" data-i="${i}">${m.status === "sent" ? "複製" : "編集"}</button>
+          <button class="btn btn-ghost btn-sm act-del" data-i="${i}" style="color:var(--bad-ink)">削除</button>
+        </div></td>
+        <td><span class="pill ${cls}"><span class="dot"></span>${label}</span></td>
+        <td class="td-mono">${m.sendAt || "—"}</td>
+        <td class="td-strong">${m.title}</td>
+        <td>${m.to || "—"}</td>
+        <td class="td-mono">${m.status === "scheduled" ? "予定 " + m.count : m.count || "—"}</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="6"><div class="empty"><h3>メールが見つかりませんでした</h3><p>「新規作成」から配信メールを作成できます。</p></div></td></tr>`;
+  }
+
+  function composeDrawer(i) {
+    const m = i != null ? DATA.mails[i] : { sendAt:"", to:"", title:"", body:"", status:"draft", count:0 };
+    const groupOpts = DATA.mailGroups.map(g => `<option ${g.name === m.to ? "selected" : ""}>${g.name}（${g.count}件）</option>`).join("");
+    const companyOpts = DATA.companies.map(c => `<option ${c.name === m.to ? "selected" : ""}>${c.name}</option>`).join("");
+    openDrawer(`
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">メール一斉配信</div>
+        <h2 style="font-size:18px;margin-top:2px">${i != null ? "配信メールを編集" : "新規メール作成"}</h2></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body">
+        <div class="field" style="margin-bottom:16px"><label class="label">送信予定日時 <span class="req">必須</span></label>
+          <input class="input" id="f-when" type="datetime-local" value="${(m.sendAt || "").replace(" ", "T")}">
+          <span class="hint">設定日時から1時間あたり約500件ずつ順番に配信します。</span></div>
+        <div class="field" style="margin-bottom:16px"><label class="label">送信先 <span class="req">必須</span></label>
+          <select class="select" id="f-to"><option value="">選択してください</option>
+            <optgroup label="メールグループ">${groupOpts}</optgroup>
+            <optgroup label="会社（個別）">${companyOpts}</optgroup></select></div>
+        <div class="field" style="margin-bottom:16px"><label class="label">タイトル <span class="req">必須</span></label>
+          <input class="input" id="f-title" value="${m.title || ""}"></div>
+        <div class="field" style="margin-bottom:16px"><label class="label">内容</label>
+          <div class="rte-bar" role="toolbar" aria-label="書式">
+            <button type="button" data-cmd="bold" title="太字">B</button>
+            <button type="button" data-cmd="italic" title="斜体" style="font-style:italic">I</button>
+            <button type="button" data-cmd="underline" title="下線" style="text-decoration:underline">U</button>
+            <button type="button" data-cmd="insertUnorderedList" title="箇条書き">•</button>
+            <button type="button" data-cmd="insertOrderedList" title="番号付き">1.</button>
+          </div>
+          <div class="rte" id="f-body" contenteditable="true">${m.body || "<p>いつもお世話になっております。あおぞらです。</p>"}</div></div>
+        <div class="field"><label class="label">添付ファイル</label>
+          <div class="drop" id="drop">ここにファイルをドロップ、またはクリックして選択<br><span class="hint">jpg / png / pdf / zip / xlsx / docx ほか（10MBまで）</span></div></div>
+      </div>
+      <div class="drawer-foot">
+        <button class="btn" style="flex:1" id="draftBtn">下書き保存</button>
+        <button class="btn btn-primary" style="flex:1" id="saveBtn">配信を予約</button>
+      </div>`);
+    document.querySelectorAll("#eqDrawer .rte-bar button").forEach(b => b.addEventListener("click", () => { document.getElementById("f-body").focus(); document.execCommand(b.dataset.cmd, false, null); }));
+    document.getElementById("drop").addEventListener("click", () => toast("ファイル選択（デモ）", "default"));
+    function collect(status) {
+      const when = document.getElementById("f-when").value.replace("T", " ");
+      const to = document.getElementById("f-to").value.replace(/（.*）$/, "");
+      const title = document.getElementById("f-title").value.trim();
+      if (status === "scheduled" && (!when || !to || !title)) { toast("日時・送信先・タイトルは必須です", "bad"); return; }
+      const grp = DATA.mailGroups.find(g => g.name === to);
+      const rec = { id: m.id || "m" + Date.now(), sendAt:when, to, title: title || "（無題）",
+        body:document.getElementById("f-body").innerHTML, status, count: status === "scheduled" ? (grp ? grp.count : 1) : 0 };
+      if (i != null && DATA.mails[i].status !== "sent") DATA.mails[i] = rec; else DATA.mails.unshift(rec);
+      closeDrawer(); render();
+      toast(status === "scheduled" ? "配信を予約しました" : "下書きを保存しました", "ok");
+    }
+    document.getElementById("saveBtn").addEventListener("click", () => collect("scheduled"));
+    document.getElementById("draftBtn").addEventListener("click", () => collect("draft"));
+  }
+
+  document.getElementById("rows").addEventListener("click", e => {
+    const ed = e.target.closest(".act-edit"), del = e.target.closest(".act-del"), tr = e.target.closest("tr[data-i]");
+    if (del) { const i = +del.dataset.i; if (confirm(`「${DATA.mails[i].title}」を削除しますか？`)) { DATA.mails.splice(i, 1); render(); toast("メールを削除しました", "default"); } return; }
+    if (ed) { composeDrawer(+ed.dataset.i); return; }
+    if (tr) composeDrawer(+tr.dataset.i);
+  });
+  document.getElementById("addBtn").addEventListener("click", () => composeDrawer(null));
+  document.getElementById("searchBtn").addEventListener("click", () => { q = document.getElementById("q").value; render(); });
+  document.getElementById("q").addEventListener("input", e => { q = e.target.value; render(); });
+  render();
+})();
+</script>
+</body></html>

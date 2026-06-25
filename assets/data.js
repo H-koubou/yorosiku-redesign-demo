@@ -194,9 +194,103 @@
     ]},
   ];
 
+  /* === 基本情報マスター（実機の「基本情報」ドロップダウン＝ユーザー/会社/車種/メール/メールグループ）===
+     ※ すべて架空データ。実在の社名・氏名・メール・電話は含めない（@example.* / 0428-** はダミー）。 */
+
+  // 会社（予約者）一覧 ＝ 実機 /project
+  const companies = [
+    { code:"rma0zr1731ec", corpNo:"1234567890123", name:"株式会社あおぞら", kana:"アオゾラ", pref:"東京都", addr:"青梅市新町6-1", bldg:"", rep:"あおぞら 代表", contact:"神田 香織", email:"yoyaku@example.com", tel:"0428-22-1731", tel2:"", note:"自社（施設）", count:0 },
+    { code:"rmsmpl0001kz", corpNo:"2345678901234", name:"サンプル建材株式会社", kana:"サンプルケンザイ", pref:"東京都", addr:"青梅市新町6-1", bldg:"", rep:"山田 太郎", contact:"山田 太郎", email:"info@example.com", tel:"0428-22-1100", tel2:"090-1111-2222", note:"", count:42 },
+    { code:"rmmirai0002k", corpNo:"3456789012345", name:"みらい建設株式会社", kana:"ミライケンセツ", pref:"東京都", addr:"青梅市末広町2-5", bldg:"", rep:"田村 誠", contact:"田村 誠", email:"kaitai@example.co.jp", tel:"0428-30-1000", tel2:"", note:"排出事業者", count:55 },
+    { code:"rmtama0003un", corpNo:"", name:"多摩運輸株式会社", kana:"タマウンユ", pref:"東京都", addr:"立川市曙町2-1", bldg:"立川中央ビル3F", rep:"佐藤 健", contact:"佐藤 健", email:"haisha@example.co.jp", tel:"042-555-2200", tel2:"", note:"", count:31 },
+    { code:"rmeco0004lg", corpNo:"4567890123456", name:"エコ物流株式会社", kana:"エコブツリュウ", pref:"東京都", addr:"八王子市子安町4-7", bldg:"", rep:"田中 守", contact:"田中 守", email:"logi@example.net", tel:"042-666-3300", tel2:"", note:"", count:27 },
+    { code:"rmjohoku005", corpNo:"", name:"城北重機株式会社", kana:"ジョウホクジュウキ", pref:"東京都", addr:"北区赤羽1-1", bldg:"", rep:"鈴木 一郎", contact:"鈴木 一郎", email:"juki@example.com", tel:"03-3900-4400", tel2:"", note:"", count:19 },
+    { code:"rmmidori006", corpNo:"", name:"緑川興業株式会社", kana:"ミドリカワコウギョウ", pref:"東京都", addr:"国立市東1-2", bldg:"", rep:"高橋 学", contact:"高橋 学", email:"info@example.jp", tel:"042-777-5500", tel2:"", note:"", count:12 },
+    { code:"rmhino0007cl", corpNo:"", name:"日野クリーン株式会社", kana:"ヒノクリーン", pref:"東京都", addr:"日野市日野本町3-3", bldg:"", rep:"渡辺 隆", contact:"渡辺 隆", email:"clean@example.com", tel:"042-888-6600", tel2:"", note:"", count:8 },
+    { code:"rmyamada008", corpNo:"5678901234567", name:"株式会社山田工務店", kana:"ヤマダコウムテン", pref:"東京都", addr:"立川市柴崎町5-2", bldg:"", rep:"山田 工", contact:"山田 工", email:"koumu@example.co.jp", tel:"042-500-1200", tel2:"", note:"排出事業者", count:23 },
+    { code:"rmkanto0009", corpNo:"", name:"関東建設株式会社", kana:"カントウケンセツ", pref:"東京都", addr:"八王子市旭町1-1", bldg:"", rep:"加藤 剛", contact:"加藤 剛", email:"kanto@example.net", tel:"042-610-3400", tel2:"", note:"排出事業者", count:18 },
+    { code:"rmkaitai010", corpNo:"", name:"山田解体工業株式会社", kana:"ヤマダカイタイ", pref:"東京都", addr:"昭島市東町4-1", bldg:"", rep:"山田 解", contact:"山田 解", email:"kaitai2@example.com", tel:"042-300-7700", tel2:"", note:"", count:14 },
+    { code:"rmaozora011", corpNo:"", name:"青空リサイクル株式会社", kana:"アオゾラリサイクル", pref:"東京都", addr:"福生市本町1-5", bldg:"", rep:"中村 茂", contact:"中村 茂", email:"recycle@example.jp", tel:"042-330-8800", tel2:"", note:"", count:11 },
+    { code:"rmdaiichi12", corpNo:"6789012345678", name:"第一環境サービス株式会社", kana:"ダイイチカンキョウ", pref:"東京都", addr:"羽村市小作台2-3", bldg:"", rep:"小林 大", contact:"小林 大", email:"service@example.co.jp", tel:"042-200-9900", tel2:"", note:"", count:9 },
+    { code:"rmmaruwa013", corpNo:"", name:"丸和興業株式会社", kana:"マルワコウギョウ", pref:"東京都", addr:"青梅市河辺町8-1", bldg:"", rep:"和田 丸", contact:"和田 丸", email:"maruwa@example.com", tel:"0428-44-1212", tel2:"", note:"", count:7 },
+    { code:"rmsakura014", corpNo:"", name:"株式会社さくら住建", kana:"サクラジュウケン", pref:"東京都", addr:"あきる野市秋川3-2", bldg:"", rep:"桜井 健太", contact:"桜井 健太", email:"sakura@example.net", tel:"042-100-3434", tel2:"", note:"", count:6 },
+    { code:"rmkitatama15", corpNo:"", name:"北多摩清掃株式会社", kana:"キタタマセイソウ", pref:"東京都", addr:"東村山市本町1-1", bldg:"", rep:"井上 清", contact:"井上 清", email:"seisou@example.jp", tel:"042-560-1313", tel2:"", note:"", count:5 },
+    { code:"rmgreen0016", corpNo:"", name:"株式会社グリーンライン", kana:"グリーンライン", pref:"東京都", addr:"小平市天神町4-4", bldg:"", rep:"林 緑", contact:"林 緑", email:"green@example.com", tel:"042-450-2424", tel2:"", note:"", count:4 },
+    { code:"rmmusashi17", corpNo:"", name:"武蔵野解体株式会社", kana:"ムサシノカイタイ", pref:"東京都", addr:"武蔵野市境1-1", bldg:"", rep:"武田 信", contact:"武田 信", email:"musashino@example.co.jp", tel:"0422-50-5656", tel2:"", note:"", count:3 },
+  ];
+
+  // ユーザー一覧 ＝ 実機 /user（権限/操作制限: システム開発者・社内管理者・社内閲覧者・予約者）
+  const accounts = [
+    { email:"dev@example.com",       name:"開発 太郎", kana:"カイハツ タロウ", gender:"会社", company:"エクオ株式会社",         dept:"開発部",   status:"本会員", role:"システム開発者", tel:"03-0000-0000", note:"" },
+    { email:"kanda@example.com",     name:"神田 香織", kana:"カンダ カオリ",   gender:"女性", company:"株式会社あおぞら",     dept:"管理課",   status:"本会員", role:"社内管理者",     tel:"0428-22-1731", note:"" },
+    { email:"fujimoto@example.com",  name:"藤本",       kana:"フジモト",        gender:"男性", company:"株式会社あおぞら",     dept:"受付",     status:"本会員", role:"社内閲覧者",     tel:"0428-22-1731", note:"" },
+    { email:"yamada@example.com",    name:"山田 太郎", kana:"ヤマダ タロウ",   gender:"男性", company:"サンプル建材株式会社", dept:"業務部",   status:"本会員", role:"予約者",         tel:"090-1111-2222", note:"" },
+    { email:"tamura@example.co.jp",  name:"田村 誠",   kana:"タムラ マコト",   gender:"男性", company:"みらい建設株式会社",   dept:"工事部",   status:"本会員", role:"予約者",         tel:"0428-30-1000", note:"" },
+    { email:"sato@example.co.jp",    name:"佐藤 健",   kana:"サトウ ケン",     gender:"男性", company:"多摩運輸株式会社",     dept:"配車課",   status:"本会員", role:"予約者",         tel:"042-555-2200", note:"" },
+    { email:"tanaka@example.net",    name:"田中 守",   kana:"タナカ マモル",   gender:"男性", company:"エコ物流株式会社",     dept:"",         status:"本会員", role:"予約者",         tel:"042-666-3300", note:"" },
+    { email:"suzuki@example.com",    name:"鈴木 一郎", kana:"スズキ イチロウ", gender:"男性", company:"城北重機株式会社",     dept:"",         status:"本会員", role:"予約者",         tel:"03-3900-4400", note:"" },
+    { email:"takahashi@example.jp",  name:"高橋 学",   kana:"タカハシ マナブ", gender:"男性", company:"緑川興業株式会社",     dept:"",         status:"本会員", role:"予約者",         tel:"042-777-5500", note:"" },
+    { email:"watanabe@example.com",  name:"渡辺 隆",   kana:"ワタナベ タカシ", gender:"男性", company:"日野クリーン株式会社", dept:"",         status:"本会員", role:"予約者",         tel:"042-888-6600", note:"" },
+    { email:"koumu@example.co.jp",   name:"山田 工",   kana:"ヤマダ タクミ",   gender:"男性", company:"株式会社山田工務店",   dept:"",         status:"本会員", role:"予約者",         tel:"042-500-1200", note:"" },
+    { email:"kato@example.net",      name:"加藤 剛",   kana:"カトウ ツヨシ",   gender:"男性", company:"関東建設株式会社",     dept:"",         status:"本会員", role:"予約者",         tel:"042-610-3400", note:"" },
+    { email:"nakamura@example.jp",   name:"中村 茂",   kana:"ナカムラ シゲル", gender:"男性", company:"青空リサイクル株式会社", dept:"",        status:"本会員", role:"予約者",         tel:"042-330-8800", note:"" },
+    { email:"kobayashi@example.co.jp", name:"小林 大", kana:"コバヤシ ダイ",   gender:"男性", company:"第一環境サービス株式会社", dept:"",      status:"本会員", role:"予約者",         tel:"042-200-9900", note:"" },
+    { email:"wada@example.com",      name:"和田 丸",   kana:"ワダ マル",       gender:"男性", company:"丸和興業株式会社",     dept:"",         status:"本会員", role:"予約者",         tel:"0428-44-1212", note:"" },
+    { email:"sakurai@example.net",   name:"桜井 健太", kana:"サクライ ケンタ", gender:"男性", company:"株式会社さくら住建",   dept:"",         status:"本会員", role:"予約者",         tel:"042-100-3434", note:"" },
+    { email:"inoue@example.jp",      name:"井上 清",   kana:"イノウエ キヨシ", gender:"男性", company:"北多摩清掃株式会社",   dept:"",         status:"仮登録", role:"予約者",         tel:"042-560-1313", note:"登録確認中" },
+    { email:"hayashi@example.com",   name:"林 緑",     kana:"ハヤシ ミドリ",   gender:"女性", company:"株式会社グリーンライン", dept:"",        status:"本会員", role:"予約者",         tel:"042-450-2424", note:"" },
+    { email:"takeda@example.co.jp",  name:"武田 信",   kana:"タケダ マコト",   gender:"男性", company:"武蔵野解体株式会社",   dept:"",         status:"退会",   role:"予約者",         tel:"0422-50-5656", note:"2026/03 退会" },
+    { email:"yamamoto@example.com",  name:"山本 三郎", kana:"ヤマモト サブロウ", gender:"男性", company:"関東建設株式会社",   dept:"資材課",   status:"本会員", role:"予約者",         tel:"042-610-3401", note:"" },
+  ];
+
+  // 車種一覧 ＝ 実機 /vehicle（車種名は汎用名称のため実機どおり）
+  const vehicleTypes = [
+    { code:"rmv01arm4t", name:"4tアームロール", note:"" }, { code:"rmv02fl4t", name:"4t平ボディ", note:"" },
+    { code:"rmv03pk4t", name:"4tパッカー", note:"" },     { code:"rmv04wg4t", name:"4tウイング", note:"" },
+    { code:"rmv05dp4t", name:"4tダンプ", note:"" },       { code:"rmv06un4t", name:"4tユニック", note:"" },
+    { code:"rmv07arm8t", name:"8tアームロール", note:"" }, { code:"rmv08armL", name:"大型アームロール", note:"" },
+    { code:"rmv09flL", name:"大型平ボディ", note:"" },     { code:"rmv10pkL", name:"大型パッカー", note:"" },
+    { code:"rmv11wgL", name:"大型ウイング", note:"" },     { code:"rmv12dpL", name:"大型ダンプ", note:"" },
+    { code:"rmv13unL", name:"大型ユニック", note:"" },     { code:"rmv14ftr", name:"フルトレーラー", note:"" },
+    { code:"rmv15str", name:"セミトレーラー", note:"" },   { code:"rmv16arm2t", name:"2tアームロール", note:"" },
+    { code:"rmv17fl2t", name:"2t平ボディ", note:"" },      { code:"rmv18dp2t", name:"2tダンプ", note:"" },
+    { code:"rmv19un2t", name:"2tユニック", note:"" },      { code:"rmv20un3t", name:"3tユニック", note:"" },
+    { code:"rmv21dpL2", name:"4t深ダンプ", note:"" },      { code:"rmv22kei", name:"軽トラ", note:"" },
+  ];
+
+  // メール一斉配信 ＝ 実機 /mail（送信予定日時から1時間に約500件ずつ配信）
+  const mails = [
+    { id:"m1", sendAt:"2025-05-27 10:00", to:"全予約者",          title:"≪重要≫畳の受入枚数の制限について",  status:"sent",  count:415 },
+    { id:"m2", sendAt:"2025-05-22 09:00", to:"全予約者",          title:"≪注意≫予約なし搬入について",        status:"sent",  count:412 },
+    { id:"m3", sendAt:"2026-06-28 08:00", to:"本社工場 利用業者", title:"7月の営業日カレンダーのお知らせ",    status:"scheduled", count:268 },
+    { id:"m4", sendAt:"",                 to:"",                  title:"夏季休業のご案内（下書き）",          status:"draft", count:0 },
+  ];
+
+  // メールグループ設定 ＝ 実機 /group（一斉配信の宛先リスト）
+  const mailGroups = [
+    { id:"g1", name:"全予約者",          count:18, note:"本会員の予約者すべて", members:["サンプル建材株式会社","みらい建設株式会社","多摩運輸株式会社","ほか15社"] },
+    { id:"g2", name:"本社工場 利用業者", count:11, note:"本社工場をよく利用する業者", members:["サンプル建材株式会社","城北重機株式会社","緑川興業株式会社","ほか8社"] },
+    { id:"g3", name:"第2工場 利用業者",  count:7,  note:"第2工場利用業者", members:["エコ物流株式会社","関東建設株式会社","青空リサイクル株式会社","ほか4社"] },
+  ];
+
+  // カレンダー（品目予定管理）の編集可能なお知らせ2枠 ＝ 実機 /calendar 上部
+  const calNotices = {
+    updated: { label:"＊更新しました＊", html:
+      "<p><b>2025.05.27更新</b></p>" +
+      "<p><b>≪重要≫畳の受入枚数の制限について</b></p>" +
+      "<p>畳の予約申請は、制限枚数に達していない日はいつでも申請可能です。受入可能枚数は予約申請画面の畳枚数入力欄に記載しています。ご確認ください。</p>" +
+      "<p><b>2025.05.22更新</b></p>" +
+      "<p><b>≪注意≫予約なし搬入について</b></p>" +
+      "<p>当社は完全予約制です。ご予約のない場合は原則受入をお断り、または受入待機（数時間お待ちいただく場合あり）となります。土曜日の予約なし搬入は受入不可です。</p>" +
+      "<p><b>2025.04.01更新</b></p>" +
+      "<p>2025年4月より土曜日の営業時間を変更します。受付時間 8:00〜11:00（入口門は11:00施錠／午後は休業）。</p>" },
+    notice: { label:"【お知らせ】", html:
+      "<p>搬入の際は受付番号をご提示ください。混雑時は10時以降の搬入が比較的スムーズです。</p>" },
+  };
+
   window.DATA = { WASTE, applyQueue, confirmed, week, CAP, board,
     carriers, emitters, factories, drivers, vehicles, sites, users, regulars, cancels, haulerRes, announcements, monthHauler,
-    notifs, chatThreads };
+    notifs, chatThreads, companies, accounts, vehicleTypes, mails, mailGroups, calNotices };
 
   /* --- Render helpers --------------------------------------------------- */
   const STATUS = {

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>会社（予約者）管理｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<style>
+  .list-meta .n { font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .pager { display:flex; align-items:center; gap:6px; justify-content:center; padding:16px 0 2px; }
+  .pager button { min-width:34px; height:34px; padding:0 9px; border:1px solid var(--line); background:var(--surface); border-radius:8px; font:600 13px/1 var(--font); color:var(--ink-2); cursor:pointer; }
+  .pager button:hover { background:var(--surface-2); }
+  .pager button.is-active { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .pager button:disabled { opacity:.4; cursor:default; }
+  .row-actions { display:flex; gap:6px; }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="project" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="基本情報 ／ 会社（予約者）管理" data-date="2026-06-25 (木)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">会社（予約者）管理</h1>
+      <p class="page-sub">搬入予約を行う運搬業者・排出事業者などの会社情報を管理。搬入予約登録時の選択候補になります。</p></div>
+
+    <div class="toolbar">
+      <input class="input" id="q" placeholder="会社名・コードで検索" style="max-width:320px;flex:1" aria-label="検索">
+      <button class="btn" id="searchBtn">検索</button>
+      <div class="grow"></div>
+      <button class="btn btn-primary" id="addBtn">＋ 新規追加</button>
+    </div>
+
+    <div class="card card-pad">
+      <div class="list-meta" style="padding:14px 16px 0"><span class="n" id="meta"></span></div>
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th class="col-actions">操作</th><th>会社名</th><th>会社コード</th><th>メール</th><th>担当者</th><th>予約実績</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <div class="pager" id="pager"></div>
+    </div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const PER = 10;
+  let page = 1, q = "";
+
+  const filtered = () => {
+    const k = q.trim().toLowerCase();
+    if (!k) return DATA.companies;
+    return DATA.companies.filter(c => [c.name, c.kana, c.code, c.email].join(" ").toLowerCase().includes(k));
+  };
+
+  function render() {
+    const list = filtered();
+    const pages = Math.max(1, Math.ceil(list.length / PER));
+    if (page > pages) page = pages;
+    const slice = list.slice((page - 1) * PER, page * PER);
+    document.getElementById("meta").textContent = `${page}/${pages}　データ数：${list.length}`;
+    document.getElementById("rows").innerHTML = slice.map(c => {
+      const i = DATA.companies.indexOf(c);
+      return `<tr data-i="${i}">
+        <td class="col-actions"><div class="row-actions">
+          <button class="btn btn-ghost btn-sm act-edit" data-i="${i}">編集</button>
+          <button class="btn btn-ghost btn-sm act-del" data-i="${i}" style="color:var(--bad-ink)">削除</button>
+        </div></td>
+        <td class="td-strong">${c.name}<div class="td-sub">${c.kana || ""}${c.note ? "　/　" + c.note : ""}</div></td>
+        <td class="td-mono">${c.code}</td>
+        <td class="td-mono">${c.email}</td>
+        <td>${c.contact || "—"}</td>
+        <td class="td-mono">${c.count} 件</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="6"><div class="empty"><h3>該当する会社がありません</h3><p>検索条件を変えてお試しください。</p></div></td></tr>`;
+
+    let pg = `<button ${page <= 1 ? "disabled" : ""} data-p="${page - 1}">前へ</button>`;
+    for (let p = 1; p <= pages; p++) pg += `<button class="${p === page ? "is-active" : ""}" data-p="${p}">${p}</button>`;
+    pg += `<button ${page >= pages ? "disabled" : ""} data-p="${page + 1}">次へ</button>`;
+    document.getElementById("pager").innerHTML = pages > 1 ? pg : "";
+  }
+
+  function editDrawer(i) {
+    const c = i != null ? DATA.companies[i] : { code:"", corpNo:"", name:"", kana:"", pref:"", addr:"", bldg:"", rep:"", contact:"", email:"", tel:"", tel2:"", note:"", count:0 };
+    const autoCode = c.code || ("rm" + Math.random().toString(36).slice(2, 12));
+    openDrawer(`
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">会社（予約者）管理</div>
+        <h2 style="font-size:18px;margin-top:2px">${i != null ? "会社情報を編集" : "新規会社登録"}</h2></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body">
+        <div class="form-grid">
+          <div class="field"><label class="label">会社管理コード <span class="req">必須</span></label><input class="input td-mono" id="f-code" value="${autoCode}"><span class="hint">半角英数字、6文字以上</span></div>
+          <div class="field"><label class="label">会社法人等番号</label><input class="input" id="f-corp" value="${c.corpNo || ""}"></div>
+          <div class="field"><label class="label">会社名 <span class="req">必須</span></label><input class="input" id="f-name" value="${c.name}"></div>
+          <div class="field"><label class="label">会社名カナ <span class="req">必須</span></label><input class="input" id="f-kana" value="${c.kana || ""}"></div>
+          <div class="field"><label class="label">都道府県</label><input class="input" id="f-pref" value="${c.pref || ""}"></div>
+          <div class="field"><label class="label">住所</label><input class="input" id="f-addr" value="${c.addr || ""}"></div>
+          <div class="field col-2"><label class="label">ビル・マンション名</label><input class="input" id="f-bldg" value="${c.bldg || ""}"></div>
+          <div class="field"><label class="label">代表者名</label><input class="input" id="f-rep" value="${c.rep || ""}"></div>
+          <div class="field"><label class="label">担当者名</label><input class="input" id="f-contact" value="${c.contact || ""}"></div>
+          <div class="field col-2"><label class="label">メールアドレス <span class="req">必須</span></label><input class="input" id="f-email" value="${c.email}"></div>
+          <div class="field"><label class="label">電話番号1</label><input class="input" id="f-tel" value="${c.tel || ""}"></div>
+          <div class="field"><label class="label">電話番号2</label><input class="input" id="f-tel2" value="${c.tel2 || ""}"></div>
+          <div class="field col-2"><label class="label">備考</label><textarea class="textarea" id="f-note">${c.note || ""}</textarea></div>
+        </div>
+      </div>
+      <div class="drawer-foot">
+        <button class="btn" style="flex:1" data-close>キャンセル</button>
+        <button class="btn btn-primary" style="flex:1" id="saveBtn">${i != null ? "保存する" : "登録する"}</button>
+      </div>`);
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const g = id => document.getElementById(id).value.trim();
+      if (!g("f-name") || !g("f-kana") || !g("f-email")) { toast("会社名・カナ・メールは必須です", "bad"); return; }
+      const rec = { code:g("f-code"), corpNo:g("f-corp"), name:g("f-name"), kana:g("f-kana"), pref:g("f-pref"),
+        addr:g("f-addr"), bldg:g("f-bldg"), rep:g("f-rep"), contact:g("f-contact"), email:g("f-email"),
+        tel:g("f-tel"), tel2:g("f-tel2"), note:g("f-note"), count: i != null ? DATA.companies[i].count : 0 };
+      if (i != null) DATA.companies[i] = rec; else DATA.companies.unshift(rec);
+      closeDrawer(); render(); toast(i != null ? "会社情報を保存しました" : "会社を登録しました", "ok");
+    });
+  }
+
+  document.getElementById("rows").addEventListener("click", e => {
+    const ed = e.target.closest(".act-edit"), del = e.target.closest(".act-del"), tr = e.target.closest("tr[data-i]");
+    if (del) { const i = +del.dataset.i; const c = DATA.companies[i];
+      if (confirm(`「${c.name}」を削除しますか？`)) { DATA.companies.splice(i, 1); render(); toast("会社を削除しました", "default"); } return; }
+    if (ed) { editDrawer(+ed.dataset.i); return; }
+    if (tr) editDrawer(+tr.dataset.i);
+  });
+  document.getElementById("addBtn").addEventListener("click", () => editDrawer(null));
+  document.getElementById("searchBtn").addEventListener("click", () => { q = document.getElementById("q").value; page = 1; render(); });
+  document.getElementById("q").addEventListener("input", e => { q = e.target.value; page = 1; render(); });
+  document.getElementById("pager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b) return; page = +b.dataset.p; render(); window.scrollTo({ top:0, behavior:"smooth" }); });
+  render();
+})();
+</script>
+</body></html>
