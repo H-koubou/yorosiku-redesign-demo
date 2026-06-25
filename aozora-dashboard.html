@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ダッシュボード｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .grid2 { display:grid; grid-template-columns:1.3fr 1fr; gap:16px; }
+  .chart { display:flex; align-items:flex-end; gap:12px; height:170px; padding-top:10px; }
+  .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:7px; height:100%; justify-content:flex-end; }
+  .bar-wrap { width:100%; display:flex; justify-content:center; align-items:flex-end; flex:1; }
+  .bar { width:62%; border-radius:7px 7px 0 0; min-height:3px; transition:height .5s cubic-bezier(.2,.7,.2,1); }
+  .bar.ok { background:linear-gradient(var(--ok),#2bb89a); } .bar.mid { background:linear-gradient(var(--warn),#e0a23a); } .bar.full { background:linear-gradient(var(--bad),#e06666); }
+  .bar-val { font-family:var(--mono); font-size:11px; font-weight:700; } .bar-lbl { font-size:11px; color:var(--muted); }
+  .bar-col.today .bar-lbl { color:var(--brand-strong); font-weight:700; }
+  .hbar-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .hbar-name { width:130px; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hbar-track { flex:1; height:9px; background:var(--surface-3); border-radius:5px; overflow:hidden; }
+  .hbar-fill { height:100%; background:linear-gradient(90deg,#2bb89a,var(--brand)); border-radius:5px; }
+  .hbar-val { font-family:var(--mono); font-size:11.5px; font-weight:700; width:42px; text-align:right; }
+  .rec-day { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; }
+  .rec-day .rd-date { font-family:var(--mono); font-weight:800; font-size:15px; width:48px; }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="dashboard" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="ダッシュボード" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">ダッシュボード</h1><p class="page-sub">本日の搬入・受入枠の混雑・申請状況をひと目で。</p></div>
+
+    <div class="stats">
+      <div class="stat is-brand"><div class="stat-label">本日 搬入予定</div><div class="stat-num num" id="kToday">—<small> 台</small></div></div>
+      <div class="stat is-warn"><div class="stat-label">承認待ち</div><div class="stat-num num">75<small> 件</small></div></div>
+      <div class="stat is-ok"><div class="stat-label">今週 確定</div><div class="stat-num num">38<small> 件</small></div></div>
+      <div class="stat is-bad"><div class="stat-label">満枠の枠</div><div class="stat-num num" id="kFull">—<small> 枠</small></div></div>
+    </div>
+
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">受入枠の混雑（今週）</div><span class="td-sub" style="margin-left:auto">1日の上限 24台（AM+PM）</span></div>
+        <div class="card-body">
+          <div class="chart" id="chart"></div>
+          <div class="legend" style="margin-top:14px;justify-content:center"><span><i style="background:var(--ok)"></i>空き</span><span><i style="background:var(--warn)"></i>混雑</span><span><i style="background:var(--bad)"></i>満枠</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">空いている枠（おすすめ）</div></div>
+        <div class="card-body">
+          <p class="hint" style="margin-bottom:12px">混雑が少なく、受入余裕のある日。申請の振替先に案内できます。</p>
+          <div id="recommend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">品目別の搬入（今週）</div></div>
+        <div class="card-body" id="byWaste"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">運搬業者ランキング</div></div>
+        <div class="card-body" id="byCarrier"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-head"><div class="card-title">やること</div></div>
+      <div class="card-body flex" style="gap:10px;flex-wrap:wrap">
+        <a class="btn btn-warn" href="aozora-apply.html">承認待ち 75件 を処理</a>
+        <a class="btn" href="aozora-reception.html">本日の受付・計量</a>
+        <a class="btn" href="aozora-cancel.html">取消申請 10件</a>
+        <a class="btn btn-ghost" href="aozora-calendar.html">カレンダーで枠を見る</a>
+      </div>
+    </div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const CAP = DATA.CAP, MAXDAY = CAP * 2;
+  const today = DATA.week.find(d => d.today);
+  document.getElementById("kToday").innerHTML = (today.am + today.pm) + '<small> 台</small>';
+  const fullSlots = DATA.week.reduce((a, d) => a + (d.am >= CAP ? 1 : 0) + (d.pm >= CAP ? 1 : 0), 0);
+  document.getElementById("kFull").innerHTML = fullSlots + '<small> 枠</small>';
+
+  // 混雑バー
+  document.getElementById("chart").innerHTML = DATA.week.map(d => {
+    const tot = d.am + d.pm, h = Math.max(3, Math.round(tot / MAXDAY * 150));
+    const cls = tot >= MAXDAY ? "full" : (tot / MAXDAY >= 0.7 ? "mid" : "ok");
+    return `<div class="bar-col ${d.today ? "today" : ""}"><span class="bar-val">${tot}</span>
+      <div class="bar-wrap"><div class="bar ${cls}" style="height:${h}px"></div></div>
+      <span class="bar-lbl">${d.dow}<br>${d.date.split('/')[1]}</span></div>`;
+  }).join("");
+
+  // 推奨（空きが多い営業日）
+  const rec = DATA.week.filter(d => d.am + d.pm < MAXDAY).map(d => ({ d, free: MAXDAY - (d.am + d.pm) })).sort((a, b) => b.free - a.free).slice(0, 4);
+  document.getElementById("recommend").innerHTML = rec.map(({ d, free }) =>
+    `<div class="rec-day"><span class="rd-date">${d.date}</span>
+      <div style="flex:1"><div class="td-strong">${d.dow}曜</div><div class="td-sub">AM残 ${CAP - d.am}台 ・ PM残 ${CAP - d.pm}台</div></div>
+      <span class="pill pill-ok"><span class="dot"></span>残 ${free}台</span></div>`).join("");
+
+  // 品目別（applyQueue + confirmed を集計）
+  const wt = {};
+  [...DATA.applyQueue, ...DATA.confirmed].forEach(r => (r.waste || []).forEach(w => wt[w] = (wt[w] || 0) + (r.units || 1)));
+  const wlist = Object.entries(wt).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const wmax = Math.max(...wlist.map(x => x[1]), 1);
+  const short = w => w.replace("ガラスくず・コンクリートくず及び陶磁器くず", "ガラ陶").replace("廃プラスチック類", "廃プラ");
+  document.getElementById("byWaste").innerHTML = wlist.map(([w, n]) =>
+    `<div class="hbar-row"><span class="hbar-name">${short(w)}</span><div class="hbar-track"><div class="hbar-fill" style="width:${n / wmax * 100}%"></div></div><span class="hbar-val">${n}台</span></div>`).join("");
+
+  // 業者別ランキング
+  const cmax = Math.max(...DATA.carriers.map(c => c.count), 1);
+  document.getElementById("byCarrier").innerHTML = DATA.carriers.slice(0, 6).map(c =>
+    `<div class="hbar-row"><span class="hbar-name">${c.name}</span><div class="hbar-track"><div class="hbar-fill" style="width:${c.count / cmax * 100}%"></div></div><span class="hbar-val">${c.count}</span></div>`).join("");
+})();
+</script>
+</body></html>

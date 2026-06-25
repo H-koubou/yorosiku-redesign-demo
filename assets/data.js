@@ -34,6 +34,10 @@
     send:     s('<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>'),
     user:     s('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>'),
     home:     s('<path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>'),
+    qr:       s('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v7h-7v-3"/>'),
+    scale:    s('<path d="M12 3v18M7 21h10M5 8h14l-3.5 7a3 3 0 01-7 0L5 8z"/><circle cx="12" cy="5" r="1.4"/>'),
+    chartbar: s('<path d="M3 21h18"/><rect x="5" y="11" width="3.4" height="7"/><rect x="10.3" y="6" width="3.4" height="12"/><rect x="15.6" y="14" width="3.4" height="4"/>'),
+    line:     s('<path d="M21 11c0-4.2-4-7.5-9-7.5S3 6.8 3 11c0 3.8 3.2 6.9 7.6 7.4.4 0 .9.3.7 1.1l-.2 1.2c0 .3.3.6.7.4 1-.5 5.5-3.3 7.2-6 .7-1 1-2.2 1-3.5z"/>'),
   };
 
   /* --- Mock data -------------------------------------------------------- */
@@ -223,6 +227,31 @@
     },
 
     ampm(v) { return `<span class="ampm ${v.toLowerCase()}">${v}</span>`; },
+
+    // 受付番号（予約から決定的に生成）
+    recNo(seed) {
+      let h = 2166136261; const s = String(seed);
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      const n = (h >>> 0) % 10000;
+      return "A-" + String(n).padStart(4, "0");
+    },
+
+    // 受付QR（デモ表示用の決定的な疑似QR。本番は実QR=予約ID/受付番号を発行）
+    qr(text) {
+      let h = 2166136261; const s = String(text);
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 1000) / 1000; };
+      const N = 25, cell = 4, pad = 8, size = N * cell + pad * 2, set = new Set();
+      const finder = (x, y) => { for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) { const e = (r === 0 || r === 6 || c === 0 || c === 6), core = (r >= 2 && r <= 4 && c >= 2 && c <= 4); if (e || core) set.add((y + r) * N + (x + c)); } };
+      [[0, 0], [N - 7, 0], [0, N - 7]].forEach(([x, y]) => finder(x, y));
+      let rects = "";
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        const zone = (r < 8 && c < 8) || (r < 8 && c >= N - 8) || (r >= N - 8 && c < 8);
+        const on = zone ? set.has(r * N + c) : rnd() > 0.5;
+        if (on) rects += `<rect x="${pad + c * cell}" y="${pad + r * cell}" width="${cell}" height="${cell}"/>`;
+      }
+      return `<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="#fff"/><g fill="#14231f">${rects}</g></svg>`;
+    },
   };
 
   /* --- BUS: 予約者アプリ⇄管理コンソールのタブ間連携（同一オリジン） ----------

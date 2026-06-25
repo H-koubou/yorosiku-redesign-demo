@@ -27,6 +27,7 @@
   <script>
   (function () {
     const R = DATA.haulerRes;
+    const fixedIndex = (i) => R.slice(0, i + 1).filter(r => r.status === "fixed").length - 1;
     sReq.textContent = R.filter(r=>r.status==="request"||r.status==="new").length;
     sFix.textContent = R.filter(r=>r.status==="fixed").length;
     sCan.textContent = R.filter(r=>r.status==="cancel").length;
@@ -38,11 +39,14 @@
           <div class="s">${r.site}</div>
           <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">${UI.pill(r.status)}
             <span class="td-sub mono">${UI.waste(r.waste)} ・ ${r.car}×${r.units}</span></div>
-          ${r.status!=="cancel" ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px" data-i="${i}">取消を依頼</button>` : ""}
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            ${r.status==="fixed" ? `<a class="btn btn-ok btn-sm" href="hauler-pass.html?i=${fixedIndex(i)}">受付QRを表示</a>` : ""}
+            ${r.status!=="cancel" ? `<button class="btn btn-ghost btn-sm" data-i="${i}">取消を依頼</button>` : ""}
+          </div>
         </div>
       </div>`).join("");
     list.addEventListener("click", e => {
-      const b = e.target.closest("[data-i]"); if (!b) return;
+      const b = e.target.closest("button[data-i]"); if (!b) return;
       const r = R[+b.dataset.i];
       toast("取消依頼を施設へ送信しました", "default");
       if (window.pwaNotify) pwaNotify("取消依頼を送信しました", `${r.date.slice(5)} ${r.ampm} の取消を依頼しました。施設の承認をお待ちください。`, "hauler-book.html", "request");

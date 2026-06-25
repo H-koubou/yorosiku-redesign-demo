@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>受付・計量｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="reception" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="受付・計量" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">受付・計量（本日）</h1>
+      <p class="page-sub">到着した車両を受付番号/QRで照合 → 計量を記録 → 完了。予約と実績が自動で紐づきます。</p></div>
+
+    <div class="stats">
+      <div class="stat is-brand"><div class="stat-label">本日 確定</div><div class="stat-num num" id="kAll">—</div></div>
+      <div class="stat is-warn"><div class="stat-label">未到着</div><div class="stat-num num" id="kWait">—</div></div>
+      <div class="stat"><div class="stat-label">受付済</div><div class="stat-num num" id="kArr">—</div></div>
+      <div class="stat is-ok"><div class="stat-label">計量済</div><div class="stat-num num" id="kDone">—</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input class="input" placeholder="受付番号 / 運搬業者で照合" style="max-width:260px" aria-label="照合">
+      <div class="grow"></div>
+      <span class="td-sub">QRをかざす or 受付番号を入力で受付</span>
+    </div>
+
+    <div class="card card-pad"><div class="table-wrap"><table class="tbl">
+      <thead><tr><th>受付番号</th><th>搬入予定</th><th>運搬業者 / 排出事業者</th><th>品目・車種</th><th>状態</th><th>計量実績</th><th class="col-actions">操作</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div></div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const R = DATA.confirmed.map(r => ({ ...r, no: UI.recNo(r.carrier + r.date + r.ampm), state: "wait", weight: null }));
+  function stats() {
+    document.getElementById("kAll").textContent = R.length;
+    document.getElementById("kWait").textContent = R.filter(r => r.state === "wait").length;
+    document.getElementById("kArr").textContent = R.filter(r => r.state === "arrived").length;
+    document.getElementById("kDone").textContent = R.filter(r => r.state === "weighed").length;
+  }
+  const STATE = { wait: ["pill-neutral", "未到着"], arrived: ["pill-warn", "受付済"], weighed: ["pill-ok", "計量済"] };
+  function render() {
+    document.getElementById("rows").innerHTML = R.map((r, i) => {
+      const [cls, label] = STATE[r.state];
+      const act = r.state === "wait" ? `<button class="btn btn-primary btn-sm" data-i="${i}" data-a="arrive">受付する</button>`
+        : r.state === "arrived" ? `<button class="btn btn-ok btn-sm" data-i="${i}" data-a="weigh">計量を記録</button>`
+        : `<span class="pill pill-ok"><span class="dot"></span>完了</span>`;
+      return `<tr>
+        <td class="td-mono td-strong">${r.no}</td>
+        <td><div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div></td>
+        <td><div class="cell-stack"><span class="td-strong">${r.carrier}</span><span class="td-sub">${r.emitter}</span></div></td>
+        <td class="td-mono">${UI.waste(r.waste)} <span class="td-sub">${r.car}×${r.units}</span></td>
+        <td><span class="pill ${cls}"><span class="dot"></span>${label}</span></td>
+        <td class="td-mono">${r.weight != null ? r.weight.toLocaleString() + " kg" : "—"}</td>
+        <td class="col-actions"><div class="row-actions">${act}<button class="btn btn-ghost btn-sm" data-i="${i}" data-a="pass">受付QR</button></div></td>
+      </tr>`;
+    }).join("");
+    stats();
+  }
+  function weighDrawer(i) {
+    const r = R[i];
+    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">計量の記録</div>
+        <h2 style="font-size:18px;margin-top:2px">${r.carrier}</h2><div class="td-sub mono">${r.no}</div></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body">
+        <dl class="dl"><dt>品目</dt><dd>${UI.waste(r.waste)}</dd><dt>車種</dt><dd>${r.car} ×${r.units}台</dd></dl>
+        <div class="divider"></div>
+        <div class="field"><label class="label">総重量 <span class="req">必須</span></label><div class="input-affix"><input class="input num" id="wKg" type="number" placeholder="例：3200"><span class="suffix">kg</span></div></div>
+        <div class="field" style="margin-top:12px"><label class="label">計量回数</label><select class="select" id="wCnt"><option>1回計量</option><option>2回計量（総重量−空車）</option></select></div>
+        <div class="field" style="margin-top:12px"><label class="label">備考</label><textarea class="textarea" placeholder="混載・付帯など"></textarea></div>
+      </div>
+      <div class="drawer-foot"><button class="btn btn-ok" style="flex:1" id="wSave">計量を確定</button></div>`);
+    document.getElementById("wSave").addEventListener("click", () => {
+      const kg = parseInt(document.getElementById("wKg").value || "0", 10);
+      if (!kg) { toast("総重量を入力してください", "bad"); return; }
+      r.weight = kg; r.state = "weighed"; render(); closeDrawer();
+      toast(`${r.no} の計量 ${kg.toLocaleString()}kg を記録しました`, "ok");
+    });
+  }
+  function passDrawer(i) {
+    const r = R[i];
+    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">受付QR / 番号</div><h2 style="font-size:18px;margin-top:2px">${r.carrier}</h2></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body" style="text-align:center">
+        <div style="width:200px;margin:8px auto 14px">${UI.qr(r.no + r.date)}</div>
+        <div class="td-sub">受付番号</div><div class="mono" style="font-size:26px;font-weight:800;letter-spacing:.05em">${r.no}</div>
+        <p class="hint" style="margin-top:14px">運搬業者アプリにも同じQR/番号が表示されます。<br>当日ゲートでこれを照合して受付します。</p>
+      </div>`);
+  }
+  document.getElementById("rows").addEventListener("click", e => {
+    const b = e.target.closest("[data-a]"); if (!b) return;
+    const i = +b.dataset.i, r = R[i];
+    if (b.dataset.a === "arrive") { r.state = "arrived"; render(); toast(`${r.no} を受付しました`, "ok"); }
+    else if (b.dataset.a === "weigh") weighDrawer(i);
+    else passDrawer(i);
+  });
+  render();
+})();
+</script>
+</body></html>

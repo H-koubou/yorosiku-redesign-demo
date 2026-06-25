@@ -50,6 +50,15 @@
         <div class="toggle-row"><span>お知らせ</span><div class="sw" data-sw></div></div>
       </div>
 
+      <div class="m-card">
+        <div class="flex" style="gap:12px;margin-bottom:10px">
+          <div style="width:42px;height:42px;border-radius:11px;background:#06C755;color:#fff;display:grid;place-items:center;flex:none"><svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M21 11c0-4.2-4-7.5-9-7.5S3 6.8 3 11c0 3.8 3.2 6.9 7.6 7.4.4 0 .9.3.7 1.1l-.2 1.2c0 .3.3.6.7.4 1-.5 5.5-3.3 7.2-6 .7-1 1-2.2 1-3.5z"/></svg></div>
+          <div style="flex:1"><div style="font-weight:700;font-size:14px">LINEで受け取る</div><div class="td-sub">承認・確認依頼をLINEでも通知します</div></div>
+          <span class="pill pill-neutral" id="lineState"><span class="dot"></span>未連携</span>
+        </div>
+        <button class="btn" style="width:100%;background:#06C755;color:#fff;border-color:#06C755" id="lineLink">LINEで友だち追加して連携</button>
+      </div>
+
       <div class="m-card" id="installCard" style="display:none">
         <div class="form-section-title" style="border:0;padding:0;margin-bottom:8px"><span class="n">2</span>アプリとして使う</div>
         <p class="hint" style="margin-bottom:10px">ホーム画面に追加すると、アプリのように全画面で素早く開けます（オフラインでも予約内容を確認可能）。</p>
@@ -89,6 +98,14 @@
       if (window.notifState() !== "granted") { toast("先に通知をオンにしてください", "bad"); return; }
       window.pwaNotify("予約が承認されました", "6/26 AM 紙くず ×1台 が確定しました。", "hauler-book.html", "approved");
       toast("テスト通知を送りました", "ok");
+    });
+
+    // LINE連携（デモ：実際は Messaging API の友だち追加→連携）
+    document.getElementById("lineLink").addEventListener("click", () => {
+      const s = document.getElementById("lineState");
+      s.className = "pill pill-ok"; s.innerHTML = '<span class="dot"></span>連携済み';
+      document.getElementById("lineLink").textContent = "LINE連携を解除";
+      toast("LINEと連携しました。承認・確認依頼がLINEにも届きます", "ok");
     });
 
     // PWAインストール

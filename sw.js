@@ -24,11 +24,11 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// ネットワーク優先（更新が即反映）＋ オフライン時はキャッシュにフォールバック
+// ネットワーク優先＋常に再検証（更新を確実に反映）＋ オフライン時はキャッシュ
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    fetch(e.request).then((res) => {
+    fetch(e.request, { cache: "no-cache" }).then((res) => {
       const copy = res.clone();
       caches.open(CACHE).then((c) => c.put(e.request, copy));
       return res;

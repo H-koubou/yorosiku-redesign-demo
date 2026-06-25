@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+<title>受付パス｜あおぞら予ろシク</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/pwa.css">
+</head>
+<body class="pwa-body">
+  <div class="pwa" data-screen="book" data-title="受付パス" data-sub="当日ゲートで提示" data-back="hauler-book.html" data-fab="false">
+    <main class="pwa-content">
+      <div class="m-card" style="text-align:center;padding:22px 18px">
+        <div class="pill pill-ok" style="margin-bottom:14px"><span class="dot"></span>予約確定</div>
+        <div style="width:210px;margin:0 auto 16px" id="qr"></div>
+        <div class="td-sub">受付番号</div>
+        <div class="mono" id="recno" style="font-size:30px;font-weight:800;letter-spacing:.06em;color:var(--ink)">A-0000</div>
+        <p class="hint" style="margin-top:14px">当日、入場ゲートでこの画面（QR / 受付番号）を提示してください。受付待機なしでご案内します。</p>
+      </div>
+      <div class="m-card">
+        <div class="m-section-label" style="margin:0 0 10px">予約内容</div>
+        <dl class="dl" id="detail"></dl>
+      </div>
+      <a class="btn btn-ghost btn-lg" style="width:100%" href="hauler-book.html">マイ予約に戻る</a>
+    </main>
+  </div>
+  <script src="assets/data.js"></script>
+  <script src="assets/pwa.js"></script>
+  <script>
+  (function () {
+    const fixed = DATA.haulerRes.filter(r => r.status === "fixed");
+    const i = parseInt(new URLSearchParams(location.search).get("i") || "0", 10);
+    const r = fixed[i] || fixed[0] || DATA.haulerRes[0];
+    const no = UI.recNo("サンプル建材株式会社" + r.date + r.ampm);
+    document.getElementById("qr").innerHTML = UI.qr(no + r.date);
+    document.getElementById("recno").textContent = no;
+    document.getElementById("detail").innerHTML = `
+      <dt>搬入予定</dt><dd class="mono">${r.date}（${r.ampm}）</dd>
+      <dt>排出事業者</dt><dd>${r.emitter}</dd>
+      <dt>排出事業場</dt><dd>${r.site}</dd>
+      <dt>品目</dt><dd>${UI.waste(r.waste)}</dd>
+      <dt>車種・台数</dt><dd class="mono">${r.car} ×${r.units}台</dd>`;
+  })();
+  </script>
+</body>
+</html>

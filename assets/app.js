@@ -12,6 +12,9 @@
       name: "あおぞら予ろシク",
       sub: "搬入予約管理（施設・管理者）",
       groups: [
+        { label: "ダッシュボード", items: [
+          { id: "dashboard", label: "ダッシュボード", href: "aozora-dashboard.html", icon: "chartbar" },
+        ]},
         { label: "予約管理", items: [
           { id: "home",     label: "予約確定一覧", href: "aozora-home.html",     icon: "check" },
           { id: "apply",    label: "申請一覧",     href: "aozora-apply.html",    icon: "inbox", badge: 75, badgeType: "warn" },
@@ -20,8 +23,9 @@
           { id: "calendar", label: "カレンダー",   href: "aozora-calendar.html", icon: "calendar" },
           { id: "chat",     label: "チャット",     href: "aozora-chat.html",     icon: "chat" },
         ]},
-        { label: "登録", items: [
-          { id: "add", label: "搬入予約登録", href: "aozora-add.html", icon: "plus" },
+        { label: "当日業務", items: [
+          { id: "reception", label: "受付・計量", href: "aozora-reception.html", icon: "scale" },
+          { id: "add",       label: "搬入予約登録", href: "aozora-add.html", icon: "plus" },
         ]},
         { label: "マスター・設定", items: [
           { id: "factory",  label: "工場",     href: "aozora-factory.html",  icon: "factory" },

@@ -40,6 +40,22 @@
               <label class="check"><input type="checkbox"> 満枠の枠への申請があったときに警告する</label>
             </div>
           </div>
+          <div class="divider"></div>
+          <div class="form-section">
+            <div class="form-section-title"><span class="n">4</span>通知チャネル</div>
+            <div class="flex between" style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:12px">
+              <div class="flex" style="gap:11px">
+                <div style="width:38px;height:38px;border-radius:10px;background:#06C755;color:#fff;display:grid;place-items:center"><svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M21 11c0-4.2-4-7.5-9-7.5S3 6.8 3 11c0 3.8 3.2 6.9 7.6 7.4.4 0 .9.3.7 1.1l-.2 1.2c0 .3.3.6.7.4 1-.5 5.5-3.3 7.2-6 .7-1 1-2.2 1-3.5z"/></svg></div>
+                <div><div style="font-weight:700;font-size:13.5px">LINE公式アカウント</div><div class="td-sub">承認・確認依頼を運搬業者のLINEへ自動送信</div></div>
+              </div>
+              <span class="pill pill-ok"><span class="dot"></span>連携済み</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <label class="check"><input type="checkbox" checked> 承認・確定をLINEでも通知する</label>
+              <label class="check"><input type="checkbox" checked> 確認依頼・取消結果をLINEでも通知する</label>
+            </div>
+            <p class="hint" style="margin-top:10px">メール・アプリのプッシュに加え、業者が普段使うLINEにも届きます。</p>
+          </div>
         </div>
         <div class="drawer-foot" style="border-radius:0 0 var(--r-lg) var(--r-lg)">
           <button class="btn btn-primary" onclick="toast('設定を保存しました','ok')">変更を保存</button>
