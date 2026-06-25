@@ -2,100 +2,171 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>受付・計量｜あおぞら予ろシク（リデザイン提案）</title>
+<title>計量・受付｜あおぞら予ろシク（リデザイン提案）</title>
 <link rel="stylesheet" href="assets/styles.css">
+<style>
+  .wt { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .wt .net { font-weight:800; color:var(--brand-strong); }
+  .wcalc { background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .wcalc .row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:13.5px; }
+  .wcalc .row.net { border-top:1px dashed var(--line-strong); margin-top:4px; padding-top:9px; }
+  .wcalc .row.net b { font-size:22px; color:var(--brand-strong); font-family:var(--mono); }
+  .seg-w button.is-active { background:var(--brand); color:#fff; }
+</style>
 </head>
 <body>
 <div class="layout" data-app="aozora" data-screen="reception" data-role="管理者"
-     data-company="株式会社あおぞら" data-title="受付・計量" data-date="2026-06-24 (水)">
+     data-company="株式会社あおぞら" data-title="計量・受付" data-date="2026-06-24 (水)">
   <main class="main"><div class="page">
-    <div class="page-head"><h1 class="page-title">受付・計量（本日）</h1>
-      <p class="page-sub">到着した車両を受付番号/QRで照合 → 計量を記録 → 完了。予約と実績が自動で紐づきます。</p></div>
+    <div class="page-head"><h1 class="page-title">計量・受付（本日）</h1>
+      <p class="page-sub">計量台のトラックを予約に紐づけて計量を記録。総重量−空車で正味を自動計算します。計量値は手入力（計量器の表示を入力）。</p></div>
 
     <div class="stats">
-      <div class="stat is-brand"><div class="stat-label">本日 確定</div><div class="stat-num num" id="kAll">—</div></div>
-      <div class="stat is-warn"><div class="stat-label">未到着</div><div class="stat-num num" id="kWait">—</div></div>
-      <div class="stat"><div class="stat-label">受付済</div><div class="stat-num num" id="kArr">—</div></div>
-      <div class="stat is-ok"><div class="stat-label">計量済</div><div class="stat-num num" id="kDone">—</div></div>
+      <div class="stat is-brand"><div class="stat-label">本日の予約</div><div class="stat-num num" id="kAll">—</div></div>
+      <div class="stat is-warn"><div class="stat-label">計量待ち</div><div class="stat-num num" id="kWait">—</div></div>
+      <div class="stat"><div class="stat-label">計量中（荷下ろし）</div><div class="stat-num num" id="kGross">—</div></div>
+      <div class="stat is-ok"><div class="stat-label">完了</div><div class="stat-num num" id="kDone">—</div></div>
     </div>
 
     <div class="toolbar">
-      <input class="input" placeholder="受付番号 / 運搬業者で照合" style="max-width:260px" aria-label="照合">
+      <input class="input" id="q" placeholder="受付番号・車番・運搬業者で照合" style="max-width:300px" aria-label="照合">
+      <span class="td-sub">計量台の車を 番号 / 車番 で特定 → 計量</span>
       <div class="grow"></div>
-      <span class="td-sub">QRをかざす or 受付番号を入力で受付</span>
+      <button class="btn" id="walkin">＋ 予約なし搬入</button>
     </div>
 
     <div class="card card-pad"><div class="table-wrap"><table class="tbl">
-      <thead><tr><th>受付番号</th><th>搬入予定</th><th>運搬業者 / 排出事業者</th><th>品目・車種</th><th>状態</th><th>計量実績</th><th class="col-actions">操作</th></tr></thead>
+      <thead><tr><th>受付番号</th><th>車番</th><th>搬入予定</th><th>運搬業者 / 排出事業者</th><th>品目・車種</th><th>状態</th><th>計量（総 / 空 / 正味）</th><th class="col-actions">操作</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div></div>
+    <p class="hint" style="margin-top:10px">※ 1回計量＝車両マスターの登録空車重量を差引。2回計量＝入場で総重量、退場で空車を計量し正味を確定。トラックスケール連携は対応可能な現場のみオプション。</p>
   </div></main>
 </div>
 <script src="assets/data.js"></script><script src="assets/app.js"></script>
 <script>
 (function () {
-  const R = DATA.confirmed.map(r => ({ ...r, no: UI.recNo(r.carrier + r.date + r.ampm), state: "wait", weight: null }));
+  const TARE = { "4tダンプ": 5500, "4t平ボディ": 5000, "4tアームロール": 5800, "大型ダンプ": 9000, "大型アームロール": 9500, "8tアームロール": 7800, "大型平ボディ": 8500 };
+  const regions = ["多摩", "品川", "足立", "練馬", "八王子"];
+  function plate(seed) { let h = 0; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return `${regions[h % regions.length]} 1${(h % 90 + 10)} あ ${(h % 89 + 10)}-${((h >> 3) % 89 + 10)}`; }
+
+  let R = DATA.confirmed.map(r => ({ ...r, no: UI.recNo(r.carrier + r.date + r.ampm), plate: plate(r.carrier + r.car),
+    tare: TARE[r.car] || 5000, state: "wait", gross: null, tareUsed: null, net: null, mode: "2回" }));
+
   function stats() {
     document.getElementById("kAll").textContent = R.length;
     document.getElementById("kWait").textContent = R.filter(r => r.state === "wait").length;
-    document.getElementById("kArr").textContent = R.filter(r => r.state === "arrived").length;
-    document.getElementById("kDone").textContent = R.filter(r => r.state === "weighed").length;
+    document.getElementById("kGross").textContent = R.filter(r => r.state === "gross").length;
+    document.getElementById("kDone").textContent = R.filter(r => r.state === "done").length;
   }
-  const STATE = { wait: ["pill-neutral", "未到着"], arrived: ["pill-warn", "受付済"], weighed: ["pill-ok", "計量済"] };
+  const ST = { wait: ["pill-neutral", "計量待ち"], gross: ["pill-warn", "計量中（荷下ろし）"], done: ["pill-ok", "計量完了"] };
+  const kg = v => v == null ? "—" : v.toLocaleString() + " kg";
+
   function render() {
-    document.getElementById("rows").innerHTML = R.map((r, i) => {
-      const [cls, label] = STATE[r.state];
-      const act = r.state === "wait" ? `<button class="btn btn-primary btn-sm" data-i="${i}" data-a="arrive">受付する</button>`
-        : r.state === "arrived" ? `<button class="btn btn-ok btn-sm" data-i="${i}" data-a="weigh">計量を記録</button>`
-        : `<span class="pill pill-ok"><span class="dot"></span>完了</span>`;
+    const q = document.getElementById("q").value.trim();
+    document.getElementById("rows").innerHTML = R.filter(r => !q || (r.no + r.plate + r.carrier).includes(q)).map((r) => {
+      const i = R.indexOf(r); const [cls, label] = ST[r.state];
+      const act = r.state === "wait" ? `<button class="btn btn-primary btn-sm" data-i="${i}" data-a="gross">計量開始</button>`
+        : r.state === "gross" ? `<button class="btn btn-ok btn-sm" data-i="${i}" data-a="tare">空車計量</button>`
+          : `<span class="pill pill-ok"><span class="dot"></span>完了</span>`;
       return `<tr>
         <td class="td-mono td-strong">${r.no}</td>
+        <td class="td-mono">${r.plate}</td>
         <td><div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div></td>
         <td><div class="cell-stack"><span class="td-strong">${r.carrier}</span><span class="td-sub">${r.emitter}</span></div></td>
         <td class="td-mono">${UI.waste(r.waste)} <span class="td-sub">${r.car}×${r.units}</span></td>
         <td><span class="pill ${cls}"><span class="dot"></span>${label}</span></td>
-        <td class="td-mono">${r.weight != null ? r.weight.toLocaleString() + " kg" : "—"}</td>
-        <td class="col-actions"><div class="row-actions">${act}<button class="btn btn-ghost btn-sm" data-i="${i}" data-a="pass">受付QR</button></div></td>
+        <td class="wt">${r.gross != null ? r.gross.toLocaleString() : "—"} / ${r.tareUsed != null ? r.tareUsed.toLocaleString() : "—"} / <span class="net">${r.net != null ? r.net.toLocaleString() + "kg" : "—"}</span></td>
+        <td class="col-actions"><div class="row-actions">${act}${r.state === "done" ? `<button class="btn btn-ghost btn-sm" data-i="${i}" data-a="slip">伝票</button>` : ""}</div></td>
       </tr>`;
-    }).join("");
+    }).join("") || `<tr><td colspan="8"><div class="empty"><h3>該当なし</h3><p>照合条件に合う車両がありません。</p></div></td></tr>`;
     stats();
   }
-  function weighDrawer(i) {
+
+  function grossDrawer(i) {
     const r = R[i];
-    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">計量の記録</div>
-        <h2 style="font-size:18px;margin-top:2px">${r.carrier}</h2><div class="td-sub mono">${r.no}</div></div>
+    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">計量開始（入場）</div>
+        <h2 style="font-size:18px;margin-top:2px">${r.carrier}</h2><div class="td-sub mono">${r.no} ・ ${r.plate}</div></div>
         <button class="icon-btn" data-close>${ICONS.x}</button></div>
       <div class="drawer-body">
-        <dl class="dl"><dt>品目</dt><dd>${UI.waste(r.waste)}</dd><dt>車種</dt><dd>${r.car} ×${r.units}台</dd></dl>
+        <dl class="dl"><dt>排出事業者</dt><dd>${r.emitter}</dd><dt>品目</dt><dd>${UI.waste(r.waste)}</dd><dt>車種</dt><dd>${r.car}（登録空車 ${r.tare.toLocaleString()}kg）</dd></dl>
         <div class="divider"></div>
-        <div class="field"><label class="label">総重量 <span class="req">必須</span></label><div class="input-affix"><input class="input num" id="wKg" type="number" placeholder="例：3200"><span class="suffix">kg</span></div></div>
-        <div class="field" style="margin-top:12px"><label class="label">計量回数</label><select class="select" id="wCnt"><option>1回計量</option><option>2回計量（総重量−空車）</option></select></div>
-        <div class="field" style="margin-top:12px"><label class="label">備考</label><textarea class="textarea" placeholder="混載・付帯など"></textarea></div>
+        <label class="label" style="margin-bottom:8px">計量方式</label>
+        <div class="seg seg-w" id="mode" style="margin-bottom:14px"><button class="is-active" data-m="2回">2回計量（総−空車）</button><button data-m="1回">1回計量（登録空車）</button></div>
+        <div class="field"><label class="label">総重量（積載状態）<span class="req">必須</span></label><div class="input-affix"><input class="input num" id="g" type="number" placeholder="例：12800"><span class="suffix">kg</span></div></div>
+        <div class="wcalc" id="prev" style="margin-top:14px;display:none"></div>
       </div>
-      <div class="drawer-foot"><button class="btn btn-ok" style="flex:1" id="wSave">計量を確定</button></div>`);
-    document.getElementById("wSave").addEventListener("click", () => {
-      const kg = parseInt(document.getElementById("wKg").value || "0", 10);
-      if (!kg) { toast("総重量を入力してください", "bad"); return; }
-      r.weight = kg; r.state = "weighed"; render(); closeDrawer();
-      toast(`${r.no} の計量 ${kg.toLocaleString()}kg を記録しました`, "ok");
+      <div class="drawer-foot"><button class="btn btn-primary" style="flex:1" id="rec">計量を記録</button></div>`);
+    let mode = "2回";
+    document.getElementById("mode").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; document.querySelectorAll("#mode button").forEach(x => x.classList.remove("is-active")); b.classList.add("is-active"); mode = b.dataset.m; prev(); });
+    const gEl = document.getElementById("g");
+    function prev() {
+      const g = parseInt(gEl.value || "0", 10), box = document.getElementById("prev");
+      if (!g) { box.style.display = "none"; return; }
+      box.style.display = "block";
+      box.innerHTML = mode === "1回"
+        ? `<div class="row"><span>総重量</span><b class="wt">${g.toLocaleString()} kg</b></div><div class="row"><span>登録空車</span><b class="wt">− ${r.tare.toLocaleString()} kg</b></div><div class="row net"><span>正味（確定）</span><b>${(g - r.tare).toLocaleString()} kg</b></div>`
+        : `<div class="row"><span>総重量</span><b class="wt">${g.toLocaleString()} kg</b></div><div class="row"><span>空車</span><span class="td-sub">退場時に計量</span></div>`;
+    }
+    gEl.addEventListener("input", prev);
+    document.getElementById("rec").addEventListener("click", () => {
+      const g = parseInt(gEl.value || "0", 10); if (!g) { toast("総重量を入力してください", "bad"); return; }
+      r.gross = g; r.mode = mode;
+      if (mode === "1回") { r.tareUsed = r.tare; r.net = g - r.tare; r.state = "done"; toast(`${r.no} 計量完了 正味 ${r.net.toLocaleString()}kg`, "ok"); }
+      else { r.state = "gross"; toast(`${r.no} 総重量 ${g.toLocaleString()}kg を記録（荷下ろしへ）`, "ok"); }
+      render(); closeDrawer();
     });
   }
-  function passDrawer(i) {
+
+  function tareDrawer(i) {
     const r = R[i];
-    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">受付QR / 番号</div><h2 style="font-size:18px;margin-top:2px">${r.carrier}</h2></div>
+    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">空車計量（退場）</div>
+        <h2 style="font-size:18px;margin-top:2px">${r.carrier}</h2><div class="td-sub mono">${r.no} ・ ${r.plate}</div></div>
         <button class="icon-btn" data-close>${ICONS.x}</button></div>
-      <div class="drawer-body" style="text-align:center">
-        <div style="width:200px;margin:8px auto 14px">${UI.qr(r.no + r.date)}</div>
-        <div class="td-sub">受付番号</div><div class="mono" style="font-size:26px;font-weight:800;letter-spacing:.05em">${r.no}</div>
-        <p class="hint" style="margin-top:14px">運搬業者アプリにも同じQR/番号が表示されます。<br>当日ゲートでこれを照合して受付します。</p>
-      </div>`);
+      <div class="drawer-body">
+        <div class="wcalc" style="margin-bottom:14px"><div class="row"><span>総重量（記録済）</span><b class="wt">${r.gross.toLocaleString()} kg</b></div></div>
+        <div class="field"><label class="label">空車重量 <span class="req">必須</span></label><div class="input-affix"><input class="input num" id="t" type="number" placeholder="例：${r.tare}"><span class="suffix">kg</span></div></div>
+        <div class="wcalc" id="prev" style="margin-top:14px;display:none"></div>
+      </div>
+      <div class="drawer-foot"><button class="btn btn-ok" style="flex:1" id="done">計量を完了</button></div>`);
+    const tEl = document.getElementById("t");
+    tEl.addEventListener("input", () => {
+      const t = parseInt(tEl.value || "0", 10), box = document.getElementById("prev");
+      if (!t) { box.style.display = "none"; return; }
+      box.style.display = "block";
+      box.innerHTML = `<div class="row"><span>総重量</span><b class="wt">${r.gross.toLocaleString()} kg</b></div><div class="row"><span>空車</span><b class="wt">− ${t.toLocaleString()} kg</b></div><div class="row net"><span>正味</span><b>${(r.gross - t).toLocaleString()} kg</b></div>`;
+    });
+    document.getElementById("done").addEventListener("click", () => {
+      const t = parseInt(tEl.value || "0", 10); if (!t) { toast("空車重量を入力してください", "bad"); return; }
+      r.tareUsed = t; r.net = r.gross - t; r.state = "done"; render(); closeDrawer();
+      toast(`${r.no} 計量完了 正味 ${r.net.toLocaleString()}kg`, "ok");
+    });
   }
+
+  function slipDrawer(i) {
+    const r = R[i];
+    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">計量伝票</div><h2 style="font-size:18px;margin-top:2px">${r.no}</h2></div><button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body"><dl class="dl">
+        <dt>車番</dt><dd class="mono">${r.plate}</dd><dt>運搬業者</dt><dd>${r.carrier}</dd><dt>排出事業者</dt><dd>${r.emitter}</dd>
+        <dt>品目</dt><dd>${UI.waste(r.waste)}</dd><dt>計量方式</dt><dd>${r.mode}計量</dd>
+        <dt>総重量</dt><dd class="mono">${r.gross.toLocaleString()} kg</dd><dt>空車重量</dt><dd class="mono">${r.tareUsed.toLocaleString()} kg</dd>
+        <dt>正味重量</dt><dd class="mono" style="font-weight:800;color:var(--brand-strong);font-size:18px">${r.net.toLocaleString()} kg</dd>
+      </dl><div class="divider"></div><div class="hint">この実績は予約・マニフェスト・請求の下地になります（次フェーズで連携）。</div></div>
+      <div class="drawer-foot"><button class="btn btn-primary" style="flex:1" onclick="toast('計量伝票を発行しました','ok')">伝票を発行 / 印刷</button></div>`);
+  }
+
   document.getElementById("rows").addEventListener("click", e => {
     const b = e.target.closest("[data-a]"); if (!b) return;
-    const i = +b.dataset.i, r = R[i];
-    if (b.dataset.a === "arrive") { r.state = "arrived"; render(); toast(`${r.no} を受付しました`, "ok"); }
-    else if (b.dataset.a === "weigh") weighDrawer(i);
-    else passDrawer(i);
+    const i = +b.dataset.i;
+    if (b.dataset.a === "gross") grossDrawer(i);
+    else if (b.dataset.a === "tare") tareDrawer(i);
+    else slipDrawer(i);
+  });
+  document.getElementById("q").addEventListener("input", render);
+  document.getElementById("walkin").addEventListener("click", () => {
+    const seed = "walk" + R.length;
+    R.unshift({ carrier: "（予約なし搬入）", emitter: "—", site: "—", waste: ["混合廃棄物"], car: "4tダンプ", units: 1,
+      date: "2026-06-24", ampm: "AM", no: UI.recNo(seed), plate: plate(seed), tare: 5500, state: "wait", gross: null, tareUsed: null, net: null, mode: "2回" });
+    render(); toast("予約なし搬入を登録しました。計量を開始してください", "default");
   });
   render();
 })();
