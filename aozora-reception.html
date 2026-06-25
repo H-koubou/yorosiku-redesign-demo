@@ -162,12 +162,40 @@
     else slipDrawer(i);
   });
   document.getElementById("q").addEventListener("input", render);
-  document.getElementById("walkin").addEventListener("click", () => {
-    const seed = "walk" + R.length;
-    R.unshift({ carrier: "（予約なし搬入）", emitter: "—", site: "—", waste: ["混合廃棄物"], car: "4tダンプ", units: 1,
-      date: "2026-06-24", ampm: "AM", no: UI.recNo(seed), plate: plate(seed), tare: 5500, state: "wait", gross: null, tareUsed: null, net: null, mode: "2回" });
-    render(); toast("予約なし搬入を登録しました。計量を開始してください", "default");
-  });
+  function walkInDrawer() {
+    openDrawer(`<div class="drawer-head"><div style="flex:1"><div class="tb-crumb">予約なし搬入</div>
+        <h2 style="font-size:18px;margin-top:2px">受付情報を入力</h2></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body">
+        <p class="hint" style="margin-bottom:14px">予約がないため、運搬業者・排出事業者・品目などは受付で入力してください（自動では決まりません）。</p>
+        <div class="field"><label class="label">運搬業者 <span class="req">必須</span></label><input class="input" id="wkCarrier" placeholder="例：○○運輸株式会社"></div>
+        <div class="field" style="margin-top:12px"><label class="label">排出事業者 <span class="req">必須</span></label><input class="input" id="wkEmitter"></div>
+        <div class="field" style="margin-top:12px"><label class="label">排出事業場（工事名）<span class="opt">任意</span></label><input class="input" id="wkSite"></div>
+        <div class="field" style="margin-top:12px"><label class="label">産業廃棄物種類 <span class="req">必須</span></label><select class="select" id="wkWaste"></select></div>
+        <div class="flex" style="gap:12px;margin-top:12px">
+          <div class="field" style="flex:1"><label class="label">車種 <span class="req">必須</span></label><select class="select" id="wkCar"></select></div>
+          <div class="field" style="width:96px"><label class="label">台数</label><input class="input num" id="wkUnits" type="number" min="1" value="1"></div>
+        </div>
+        <div class="field" style="margin-top:12px"><label class="label">車番 <span class="opt">任意</span></label><input class="input mono" id="wkPlate" placeholder="例：多摩 100 あ 12-34"></div>
+      </div>
+      <div class="drawer-foot"><button class="btn btn-primary" style="flex:1" id="wkSave">登録して計量へ</button></div>`);
+    document.getElementById("wkWaste").innerHTML = `<option value="">選択してください</option>` + DATA.WASTE.map(w => `<option>${w}</option>`).join("");
+    document.getElementById("wkCar").innerHTML = `<option value="">選択してください</option>` + Object.keys(TARE).concat(["軽トラ", "乗用車"]).map(c => `<option>${c}</option>`).join("");
+    document.getElementById("wkSave").addEventListener("click", () => {
+      const carrier = document.getElementById("wkCarrier").value.trim();
+      const emitter = document.getElementById("wkEmitter").value.trim();
+      const car = document.getElementById("wkCar").value;
+      const waste = document.getElementById("wkWaste").value;
+      if (!carrier || !emitter || !car || !waste) { toast("運搬業者・排出事業者・品目・車種は必須です", "bad"); return; }
+      const seed = "walk" + carrier + emitter + R.length;
+      R.unshift({ carrier, emitter, site: document.getElementById("wkSite").value.trim() || "—", waste: [waste], car,
+        units: Math.max(1, parseInt(document.getElementById("wkUnits").value || "1", 10)), date: "2026-06-24", ampm: "AM",
+        no: UI.recNo(seed), plate: document.getElementById("wkPlate").value.trim() || plate(seed), tare: TARE[car] || 5000,
+        state: "wait", gross: null, tareUsed: null, net: null, mode: "2回", walkin: true });
+      render(); closeDrawer(); toast("予約なし搬入を登録しました。計量を開始してください", "ok");
+    });
+  }
+  document.getElementById("walkin").addEventListener("click", walkInDrawer);
   render();
 })();
 </script>
