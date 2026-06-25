@@ -57,7 +57,7 @@
       <div class="ba">
         <div class="pane">
           <span class="tag before"><span class="dot" style="width:7px;height:7px;border-radius:50%;background:currentColor"></span>現行</span>
-          <div class="shot" style="min-height:230px;display:grid;place-items:center;text-align:center;padding:24px"><div><div style="font-size:13px;font-weight:700;color:var(--ink-2)">現行画面</div><div class="hint" style="margin-top:6px">実データを含むため公開版では非掲載。<br>商談時にローカルでご提示します。</div></div></div>
+          <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="compare/before-apply.png" alt="現行の申請一覧"></div>
           <ul class="pts bad">
             <li><span class="ic">—</span>11列が横並びで、見るべき順・優先度が伝わりにくい</li>
             <li><span class="ic">—</span>状態が文字中心で、ひと目の判別が難しい</li>
@@ -83,7 +83,7 @@
       <div class="ba">
         <div class="pane">
           <span class="tag before"><span style="width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block"></span>現行</span>
-          <div class="shot" style="min-height:230px;display:grid;place-items:center;text-align:center;padding:24px"><div><div style="font-size:13px;font-weight:700;color:var(--ink-2)">現行画面</div><div class="hint" style="margin-top:6px">実データを含むため公開版では非掲載。<br>商談時にローカルでご提示します。</div></div></div>
+          <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="compare/before-hauler.png" alt="現行の予約者カレンダー"></div>
           <ul class="pts bad">
             <li><span class="ic">—</span>受付終了・残数が文字の羅列で、満枠が直感的でない</li>
             <li><span class="ic">—</span>自分の予約状況を見つけにくい</li>
@@ -118,19 +118,19 @@
 
     <!-- 見積 -->
     <div class="cmp">
-      <h2>④ 進め方と概算（提案用）</h2>
-      <p class="lead">いきなり全部ではなく、まず有料の要件定義で“現行機能の確定”から。リスクを抑えて進めます。</p>
+      <h2>④ 進め方（段階的に進めます）</h2>
+      <p class="lead">いきなり全部ではなく、まず要件定義で“現行機能の確定”から。リスクを抑えて段階的に進めます。</p>
       <table class="est">
-        <thead><tr><th style="width:34px"></th><th>ステップ</th><th>内容</th><th>目安（税別）</th><th>期間</th></tr></thead>
+        <thead><tr><th style="width:34px"></th><th>ステップ</th><th>内容</th><th>期間の目安</th></tr></thead>
         <tbody>
-          <tr><td class="price">1</td><td>要件定義・画面設計</td><td>現行機能の棚卸し、項目・権限の確定、画面仕様の合意</td><td class="price">¥30〜60万</td><td>2〜3週</td></tr>
-          <tr><td class="price">2</td><td>フロント実装（全画面）</td><td>管理コンソール＋予約者PWAのUI実装（このデモの作り込み）</td><td class="price">¥120〜220万</td><td>6〜10週</td></tr>
-          <tr><td class="price">3</td><td>通知・チャット基盤</td><td>Web Push（VAPID）、施設⇄業者メッセージ</td><td class="price">¥40〜80万</td><td>2〜4週</td></tr>
-          <tr><td class="price">4</td><td>既存連携・データ移行</td><td>現行DB／業務との接続（現状調査のうえ個別見積）</td><td class="price">別途</td><td>—</td></tr>
-          <tr><td class="price">5</td><td>運用・保守</td><td>ホスティング、改善対応、問い合わせ</td><td class="price">月 ¥3〜8万</td><td>継続</td></tr>
+          <tr><td class="price">1</td><td>要件定義・画面設計</td><td>現行機能の棚卸し、項目・権限の確定、画面仕様の合意</td><td>2〜3週</td></tr>
+          <tr><td class="price">2</td><td>フロント実装（全画面）</td><td>管理コンソール＋予約者PWAのUI実装（このデモの作り込み）</td><td>6〜10週</td></tr>
+          <tr><td class="price">3</td><td>通知・チャット基盤</td><td>Web Push（VAPID）、施設⇄業者メッセージ</td><td>2〜4週</td></tr>
+          <tr><td class="price">4</td><td>既存連携・データ移行</td><td>現行DB／業務との接続（現状調査のうえ個別見積）</td><td>個別</td></tr>
+          <tr><td class="price">5</td><td>運用・保守</td><td>ホスティング、改善対応、問い合わせ</td><td>継続</td></tr>
         </tbody>
       </table>
-      <p class="note">※ 概算レンジです。配車管理システムは別システムのため別途お見積り。本番のプッシュ通知・インストールには独自ドメインのHTTPS（SSL）が必要です。</p>
+      <p class="note">※ 費用は別途お見積りいたします。配車管理システムは別システムです。本番のプッシュ通知・インストールには独自ドメインのHTTPS（SSL）が必要です。</p>
     </div>
 
     <div style="text-align:center"><a class="btn btn-primary btn-lg" href="index.html">← 画面ツアーに戻る</a></div>
