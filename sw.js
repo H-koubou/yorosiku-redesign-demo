@@ -40,10 +40,14 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("push", (e) => {
   let d = { title: "あおぞら予ろシク", body: "新しい通知があります", url: "hauler-home.html" };
   try { if (e.data) d = Object.assign(d, e.data.json()); } catch (_) {}
-  e.waitUntil(self.registration.showNotification(d.title, {
-    body: d.body, icon: "assets/icon-192.png", badge: "assets/icon-192.png",
-    vibrate: [80, 40, 80], data: d.url, tag: d.tag || "yorosiku",
-  }));
+  e.waitUntil(Promise.all([
+    self.registration.showNotification(d.title, {
+      body: d.body, icon: "assets/icon-192.png", badge: "assets/icon-192.png",
+      vibrate: [80, 40, 80], data: d.url, tag: d.tag || "yorosiku",
+    }),
+    self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then((cs) => cs.forEach((c) => c.postMessage({ type: "push", payload: d }))),
+  ]));
 });
 
 self.addEventListener("notificationclick", (e) => {

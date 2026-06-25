@@ -164,6 +164,46 @@
   }
   window.subscribeAdminPush = () => subscribeRole("admin");
 
+  // 受付チャイム（新着時に鳴らす。Web Audioで生成・音声ファイル不要）
+  let _ac;
+  function chime() {
+    try {
+      _ac = _ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (_ac.state === "suspended") _ac.resume();
+      const now = _ac.currentTime;
+      [[880, 0], [1320, 0.13]].forEach(([f, t]) => {
+        const o = _ac.createOscillator(), g = _ac.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, now + t);
+        g.gain.exponentialRampToValueAtTime(0.3, now + t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.38);
+        o.connect(g); g.connect(_ac.destination);
+        o.start(now + t); o.stop(now + t + 0.42);
+      });
+    } catch (_) {}
+  }
+  window.playChime = chime;
+  // 自動再生制限の解除（最初の操作時にAudioContextを起こす）
+  document.addEventListener("pointerdown", function unlock() {
+    try { _ac = _ac || new (window.AudioContext || window.webkitAudioContext)(); _ac.resume(); } catch (_) {}
+    document.removeEventListener("pointerdown", unlock);
+  }, { once: true });
+
+  // Service Worker からのプッシュ着信（別端末→このPCの開いた管理画面）→ チャイム＋通知センター
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", (e) => {
+      if (e.data && e.data.type === "push") {
+        chime();
+        const p = e.data.payload || {};
+        if (window.adminNotify) { /* 二重通知回避のため通知センターのみ */ }
+        if (window.DATA?.notifs) {
+          window.DATA.notifs.unshift({ id: "n" + Date.now(), type: "request", icon: "info", title: p.title || "新着", body: p.body || "", at: "たった今", unread: true });
+          document.dispatchEvent(new CustomEvent("admin-notif-refresh"));
+        }
+      }
+    });
+  }
+
   const hasN = () => "Notification" in window;
   const pushState = () => (hasN() ? Notification.permission : "unsupported");
 
@@ -267,9 +307,10 @@
           carrier: p.carrier, emitter: p.emitter || "—", site: p.site || "—", waste: p.waste || [], tatami: p.tatami || null,
           car: p.car, units: p.units, note: p.note || "", by: p.by || p.carrier, at: "たった今", status: "new" });
         window.adminNotify?.("新しい搬入申請が届きました", `${p.carrier}／${(p.date || "").slice(5)} ${p.ampm}・${(p.waste || []).join("・")}・${p.car}×${p.units}台`, "aozora-apply.html", "request");
+        chime();
         document.dispatchEvent(new CustomEvent("apply-incoming", { detail: p }));
       });
-      BUS.on("chat-carrier", (p) => window.adminNotify?.("あおぞら事務局あてメッセージ", p.text, "aozora-chat.html", "chat"));
+      BUS.on("chat-carrier", (p) => { window.adminNotify?.("あおぞら事務局あてメッセージ", p.text, "aozora-chat.html", "chat"); chime(); });
     }
   });
 })();
