@@ -164,7 +164,7 @@ button { font-family: inherit; }
 /* =========================================================================
    Page scaffold
    ========================================================================= */
-.page { padding: var(--gut); max-width: 1320px; width: 100%; }
+.page { padding: var(--gut); width: 100%; }
 .page-head { margin-bottom: 18px; }
 .page-title { font-size: 21px; }
 .page-sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
