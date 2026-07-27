@@ -346,6 +346,44 @@
     if (!("tatami" in x.limits)) x.limits.tatami = ("tatami" in x) ? x.tatami : null;
   });
 
+  /* --- 月別カレンダー ------------------------------------------------------
+     2026年6月は実機準拠の値をそのまま使う。それ以外の月は決定的に生成して
+     月送りできるようにする（同じ月を開けば必ず同じ内容になる）。            */
+  const TODAY = { y: 2026, m: 6, d: 24 };
+  const MONTH_STORE = { "2026-06": monthHauler };
+  const monthKey = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
+  const daysInMonth = (y, m) => new Date(y, m, 0).getDate();
+
+  function genMonth(y, m) {
+    const n = daysInMonth(y, m), out = [];
+    for (let d = 1; d <= n; d++) {
+      const dow = new Date(y, m - 1, d).getDay();
+      const past = y < TODAY.y || (y === TODAY.y && (m < TODAY.m || (m === TODAY.m && d < TODAY.d)));
+      let h = 2166136261; const s = `${y}/${m}/${d}`;
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      const r = (h >>> 0) % 100;
+      const x = { d, state: dow === 0 ? "closed" : past ? "ended" : (r < 6 ? "am" : r < 10 ? "pm" : "open"), limits: {} };
+      if (x.state === "closed") { x.limits.car = null; x.limits.tatami = null; }
+      else {
+        x.limits.car    = r < 8  ? null : 10 + (r % 5) * 5;        // 10〜30台
+        x.limits.tatami = r < 12 ? null : 50 * (1 + (r % 6));      // 50〜300枚
+        x.car = x.limits.car; x.tatami = x.limits.tatami;
+      }
+      out.push(x);
+    }
+    return out;
+  }
+  function getMonth(y, m) {
+    const k = monthKey(y, m);
+    if (!MONTH_STORE[k]) MONTH_STORE[k] = genMonth(y, m);
+    return MONTH_STORE[k];
+  }
+  // ISO日付("2026-07-25") から該当日のレコードを引く（まとめ登録が月をまたぐため）
+  function getDay(iso) {
+    const [y, m, d] = iso.split("-").map(Number);
+    return getMonth(y, m).find(x => x.d === d) || null;
+  }
+
   /* --- 回収予約（受入要望 #1）--------------------------------------------
      持込＝日付＋AM/PM を1点で指定。回収＝「いつなら受けられるか」の許容範囲を持つ。
      range: day=終日可 / time=当日の時間帯 / span=複数日 / each=日ごとに締め時刻が違う   */
@@ -368,7 +406,8 @@
   window.DATA = { WASTE, applyQueue, confirmed, week, CAP, board,
     carriers, emitters, factories, drivers, vehicles, sites, users, regulars, cancels, haulerRes, announcements, monthHauler,
     notifs, chatThreads, companies, accounts, vehicleTypes, mails, mailGroups, calNotices,
-    items, limitDefs, LIMIT_UNITS, collectRes, RANGE_LABEL, saveMaster, resetMaster };
+    items, limitDefs, LIMIT_UNITS, collectRes, RANGE_LABEL, saveMaster, resetMaster,
+    TODAY, getMonth, getDay, daysInMonth };
 
   /* --- Render helpers --------------------------------------------------- */
   const STATUS = {

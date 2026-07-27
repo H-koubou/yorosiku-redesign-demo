@@ -36,10 +36,24 @@
   /* まとめ登録のプレビュー（受入要望 #6）：保存前に「どの日に効くか」を見せる */
   .cal-cell.is-preview { box-shadow:inset 0 0 0 2px var(--brand); background:var(--brand-soft); }
   .cal-cell.is-preview:hover { background:var(--brand-soft); }
-  .prev-bar { display:flex; align-items:center; gap:12px; border:1px solid var(--brand); background:var(--brand-soft);
-              border-radius:var(--r); padding:11px 15px; margin-bottom:14px; }
-  .prev-bar .pb-t { flex:1; font-size:12.5px; color:var(--brand-ink); line-height:1.6; }
-  .prev-bar .pb-t b { font-family:var(--mono); font-size:14px; }
+  .prev-bar { border:1px solid var(--brand); background:var(--brand-soft); border-radius:var(--r); padding:13px 16px; margin-bottom:14px; }
+  .prev-bar .pb-head { display:flex; align-items:center; gap:12px; margin-bottom:11px; }
+  .prev-bar .pb-ttl { font-size:13.5px; color:var(--brand-ink); }
+  .pv-sec { display:flex; gap:14px; padding:8px 0; border-top:1px solid rgba(13,122,100,.22); font-size:12.5px; }
+  .pv-sec .pv-h { width:88px; flex:none; font-weight:700; color:var(--brand-ink); font-size:11.5px; padding-top:2px; }
+  .pv-sec .pv-b { flex:1; color:var(--ink-2); line-height:1.75; }
+  .pv-sec.pv-warn .pv-h { color:var(--warn-ink); }
+  .pv-sec.pv-warn .pv-b { color:var(--warn-ink); }
+  /* 変更前 → 変更後 の差分 */
+  .dif-row { display:flex; align-items:baseline; gap:10px; padding:2px 0; }
+  .dif-row .dn { width:120px; flex:none; font-weight:600; color:var(--ink); }
+  .dif-row .db { font-family:var(--mono); color:var(--muted); text-decoration:line-through; }
+  .dif-row .da { font-family:var(--mono); color:var(--ink); }
+  .dif-row .da b { color:var(--brand-strong); }
+  .dif-row.is-same .db { text-decoration:none; }
+  .dif-row.is-same .da { color:var(--muted); }
+  /* 個別に手を入れた日 */
+  .cal-cell.is-custom .day-num::after { content:"●"; font-size:7px; color:var(--brand); vertical-align:super; margin-left:3px; }
   /* まとめ登録ドロワー（受入要望 #6） */
   .set-row { border:1px solid var(--line); border-radius:9px; padding:11px 13px; margin-bottom:9px; background:var(--surface); }
   .set-row.is-off { background:var(--surface-2); }
@@ -81,9 +95,14 @@
 
       <!-- まとめ登録のプレビュー表示（受入要望 #6） -->
       <div id="prevBar" hidden class="prev-bar">
-        <div class="pb-t" id="prevText"></div>
-        <button class="btn btn-sm" id="prevCancel">やめる</button>
-        <button class="btn btn-primary btn-sm" id="prevApply">この内容で登録する</button>
+        <div class="pb-head">
+          <b class="pb-ttl">この内容で登録します</b>
+          <span class="hint">カレンダー上の緑枠が対象日です</span>
+          <div class="grow"></div>
+          <button class="btn btn-sm" id="prevCancel">やめる</button>
+          <button class="btn btn-primary btn-sm" id="prevApply">登録する</button>
+        </div>
+        <div id="prevBody"></div>
       </div>
 
       <!-- 月カレンダー -->
@@ -169,13 +188,21 @@
     if (on.length > show.length) html += `<div class="cap-line"><span class="k">ほか ${on.length - show.length} 項目</span><span class="v"></span></div>`;
     return html;
   }
+  /* ---- 表示中の月（月送り対応）---- */
+  let curY = DATA.TODAY.y, curM = DATA.TODAY.m;
+  const MONTH = () => DATA.getMonth(curY, curM);
+  const iso = d => `${curY}-${String(curM).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const isoOf = (y, m, d) => `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const dowOf = (y, m, d) => new Date(y, m - 1, d).getDay();
+
   function renderGrid() {
-    const lead = 1; // 2026/6/1 = 月曜 → 日曜始まりで先頭1セル空き
+    const lead = dowOf(curY, curM, 1);          // 日曜始まりの先頭空きセル数
     let cells = "";
     for (let b = 0; b < lead; b++) cells += `<div class="day cal-cell is-blank"></div>`;
-    DATA.monthHauler.forEach(x => {
+    MONTH().forEach(x => {
       const st = STATE[x.state] || STATE.open;
-      cells += `<div class="day cal-cell is-${x.state}${x.today ? " is-today" : ""}" data-d="${x.d}">
+      const isToday = curY === DATA.TODAY.y && curM === DATA.TODAY.m && x.d === DATA.TODAY.d;
+      cells += `<div class="day cal-cell is-${x.state}${isToday ? " is-today" : ""}${x.custom ? " is-custom" : ""}" data-d="${x.d}">
         <div class="cal-cell-top"><span class="day-num">${x.d}</span>${statePill(x.state)}</div>
         ${x.state === "closed"
           ? `<div style="margin:auto 0;text-align:center"><span class="closed-tag">休業日</span></div>`
@@ -183,12 +210,19 @@
       </div>`;
     });
     document.getElementById("monthGrid").innerHTML = cells;
+    document.getElementById("monthLabel").textContent = `${curY}年 ${curM}月`;
+    if (pending) pending.days.filter(k => k.startsWith(`${curY}-${String(curM).padStart(2, "0")}`))
+      .forEach(k => document.querySelector(`.cal-cell[data-d="${+k.slice(8)}"]`)?.classList.add("is-preview"));
   }
-  renderGrid();
+  function goMonth(delta) {
+    let m = curM + delta, y = curY;
+    if (m < 1) { m = 12; y--; } else if (m > 12) { m = 1; y++; }
+    curY = y; curM = m; renderGrid();
+  }
 
   /* ---- 日付クリック → 編集ドロワー ---- */
   function dayDrawer(d) {
-    const x = DATA.monthHauler.find(m => m.d === d); if (!x) return;
+    const x = MONTH().find(m => m.d === d); if (!x) return;
     const stOpts = Object.entries(STATE).map(([k, v]) => `<option value="${k}" ${x.state === k ? "selected" : ""}>${v.label}${v.hours ? "（" + v.hours + "）" : ""}</option>`).join("");
     // 有効な制限項目の数だけ入力欄を生成（受入要望 #5）
     const limFields = activeLimits().map(l => {
@@ -201,7 +235,7 @@
         </div></div>`;
     }).join("") || `<p class="hint">有効な制限項目がありません。<a href="aozora-limits.html">制限項目マスター</a>で追加できます。</p>`;
     openDrawer(`
-      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">品目予定管理 ／ 2026年6月${d}日</div>
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">品目予定管理 ／ ${curY}年${curM}月${d}日</div>
         <h2 style="font-size:18px;margin-top:2px">この日の設定</h2></div>
         <button class="icon-btn" data-close>${ICONS.x}</button></div>
       <div class="drawer-body">
@@ -244,7 +278,8 @@
           setLim(x, l.id, (infEl && infEl.checked) ? null : Math.max(0, parseInt(inEl.value || "0", 10)));
         });
       }
-      closeDrawer(); renderGrid(); toast(`6月${d}日の設定を保存しました`, "ok");
+      x.custom = true;   // 個別に手当てした日（まとめ登録の上書き警告に使う）
+      closeDrawer(); renderGrid(); toast(`${curM}月${d}日の設定を保存しました`, "ok");
     });
   }
   document.getElementById("monthGrid").addEventListener("click", e => {
@@ -256,11 +291,11 @@
   /* ---- 予定をまとめて登録（受入要望 #6）--------------------------------
      現行は「繰り返し条件を別々に持つ登録ブロック」が縦に並ぶため、どのルールがどの日に
      効くのかを人が追えず入力ミスの温床になっていた。ここでは
-       ① 適用する日（繰り返し）を1つだけ決める
-       ② その日に設定する内容を全部まとめて入れる（触らない項目は「変更しない」）
-       ③ 保存前にカレンダー上へプレビュー反映してから確定
+       ① 適用する日（繰り返し＋期間）を1つだけ決める
+       ② その日に設定する内容を全部まとめて入れる（触らない項目はチェックを外す＝据え置き）
+       ③ 確認は「入力の復唱」ではなく "結果の予告" ＝ 対象日数・変更前→変更後の差分・
+          上書きされる既存設定 を出し、カレンダー上にもプレビュー反映してから確定
      という順序に統一している。                                              */
-  const DOW = d => d % 7;                       // 2026年6月1日＝月曜（0=日）
   const DOW_JA = ["日","月","火","水","木","金","土"];
   const REPEATS = [
     { id:"none",     label:"繰り返さない（その日だけ）" },
@@ -269,26 +304,37 @@
     { id:"weekdays", label:"毎週平日（月〜金）" },
     { id:"weekend",  label:"毎週 土日" },
     { id:"nth",      label:"毎月 第◯◯曜日" },
-    { id:"monthEnd", label:"月末" },
+    { id:"monthEnd", label:"毎月 月末" },
   ];
-  const DAYS = DATA.monthHauler.map(x => x.d);
-  const lastDay = DAYS[DAYS.length - 1];
-  let pending = null;   // { days:[], apply:fn, summary:"" }
+  const MAX_SPAN = 400;                      // 暴走防止（1年強）
+  let pending = null;                        // { days:[ISO], ops:[], excl:bool }
 
-  function targetDays(rule, from, to) {
-    const inRange = d => d >= from && d <= to;
-    switch (rule) {
-      case "daily":    return DAYS.filter(inRange);
-      case "weekly":   return DAYS.filter(d => inRange(d) && DOW(d) === DOW(from));
-      case "weekdays": return DAYS.filter(d => inRange(d) && DOW(d) >= 1 && DOW(d) <= 5);
-      case "weekend":  return DAYS.filter(d => inRange(d) && (DOW(d) === 0 || DOW(d) === 6));
-      case "nth": {    // 「第n◯曜日」＝開始日と同じ週番号・同じ曜日
-        const nth = Math.ceil(from / 7);
-        return DAYS.filter(d => inRange(d) && DOW(d) === DOW(from) && Math.ceil(d / 7) === nth);
+  const parseISO = s => { const [y, m, d] = s.split("-").map(Number); return { y, m, d }; };
+  const fmtMD = s => { const { y, m, d } = parseISO(s); return `${m}/${d}(${DOW_JA[dowOf(y, m, d)]})`; };
+  const nthOf = d => Math.ceil(d / 7);
+
+  // 期間内の日付を1日ずつ辿り、繰り返し条件に合うものだけを返す（月をまたいでよい）
+  function targetDates(rule, fromISO, toISO) {
+    const a = parseISO(fromISO), b = parseISO(toISO);
+    const start = new Date(a.y, a.m - 1, a.d), end = new Date(b.y, b.m - 1, b.d);
+    if (end < start) return [];
+    const baseDow = dowOf(a.y, a.m, a.d), baseNth = nthOf(a.d);
+    const out = [];
+    for (let cur = new Date(start); cur <= end && out.length <= MAX_SPAN; cur.setDate(cur.getDate() + 1)) {
+      const y = cur.getFullYear(), m = cur.getMonth() + 1, d = cur.getDate(), w = cur.getDay();
+      let hit = false;
+      switch (rule) {
+        case "daily":    hit = true; break;
+        case "weekly":   hit = w === baseDow; break;
+        case "weekdays": hit = w >= 1 && w <= 5; break;
+        case "weekend":  hit = w === 0 || w === 6; break;
+        case "nth":      hit = w === baseDow && nthOf(d) === baseNth; break;
+        case "monthEnd": hit = d === DATA.daysInMonth(y, m); break;
+        default:         hit = y === a.y && m === a.m && d === a.d; break;
       }
-      case "monthEnd": return DAYS.filter(d => d === lastDay && inRange(d));
-      default:         return DAYS.filter(d => d === from);
+      if (hit) out.push(isoOf(y, m, d));
     }
+    return out;
   }
 
   function bulkDrawer() {
@@ -303,8 +349,9 @@
         </div></div>
       </div>`).join("");
 
+    const first = isoOf(curY, curM, 1), last = isoOf(curY, curM, DATA.daysInMonth(curY, curM));
     openDrawer(`
-      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">品目予定管理 ／ 2026年6月</div>
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">品目予定管理</div>
         <h2 style="font-size:18px;margin-top:2px">予定をまとめて登録</h2></div>
         <button class="icon-btn" data-close>${ICONS.x}</button></div>
       <div class="drawer-body">
@@ -312,10 +359,10 @@
         <div class="field" style="margin-bottom:12px"><label class="label">繰り返し</label>
           <select class="select" id="b-rule">${REPEATS.map(r => `<option value="${r.id}">${r.label}</option>`).join("")}</select></div>
         <div class="flex" style="gap:12px;margin-bottom:8px">
-          <div class="field" style="flex:1"><label class="label">開始日</label>
-            <input class="input" type="date" id="b-from" value="2026-06-01" min="2026-06-01" max="2026-06-${lastDay}"></div>
-          <div class="field" style="flex:1" id="b-toWrap"><label class="label">終了日</label>
-            <input class="input" type="date" id="b-to" value="2026-06-${lastDay}" min="2026-06-01" max="2026-06-${lastDay}"></div>
+          <div class="field" style="flex:1"><label class="label">開始日 <span class="req">必須</span></label>
+            <input class="input" type="date" id="b-from" value="${first}"></div>
+          <div class="field" style="flex:1" id="b-toWrap"><label class="label">終了日 <span class="req">必須</span></label>
+            <input class="input" type="date" id="b-to" value="${last}"></div>
         </div>
         <p class="hint" id="b-count" style="margin-bottom:18px"></p>
 
@@ -339,76 +386,122 @@
           </div>
         </div>
 
-        ${limRows}
+        <div id="b-lims">${limRows}</div>
+        <p class="hint" id="b-closedNote" hidden style="margin-top:8px;color:var(--warn-ink)">休業日を選んでいるため、営業時間と受入上限は設定できません。</p>
         <p class="hint" style="margin-top:10px">制限項目は<a href="aozora-limits.html">制限項目マスター</a>で有効にしたものが並びます。</p>
       </div>
       <div class="drawer-foot">
         <button class="btn" style="flex:1" data-close>キャンセル</button>
-        <button class="btn btn-primary" style="flex:1" id="b-preview">③ カレンダーで確認する</button>
+        <button class="btn btn-primary" style="flex:1" id="b-preview">③ 内容を確認する</button>
       </div>`);
 
     const ruleEl = document.getElementById("b-rule"), fromEl = document.getElementById("b-from"), toEl = document.getElementById("b-to");
-    const dayOf = el => parseInt(el.value.slice(8), 10) || 1;
+    const stateRow = document.querySelector('#eqDrawer .set-row[data-set="state"]');
 
     document.querySelectorAll("#eqDrawer .set-row").forEach(row => {
-      row.querySelector("[data-on]").addEventListener("change", e => row.classList.toggle("is-off", !e.target.checked));
+      row.querySelector("[data-on]").addEventListener("change", e => { row.classList.toggle("is-off", !e.target.checked); syncConflicts(); });
       const inf = row.querySelector("[data-inf]");
       if (inf) inf.addEventListener("change", () => { row.querySelector("[data-v]").disabled = inf.checked; });
     });
+    stateRow.querySelector("[data-v]").addEventListener("change", syncConflicts);
+
+    // 矛盾する組み合わせは確認画面ではなく入力時点で選べなくする
+    function syncConflicts() {
+      const on = stateRow.querySelector("[data-on]").checked;
+      const closed = on && stateRow.querySelector("[data-v]").value === "closed";
+      document.getElementById("b-closedNote").hidden = !closed;
+      ["hours", ...activeLimits().map(l => "lim:" + l.id)].forEach(key => {
+        const row = document.querySelector(`#eqDrawer .set-row[data-set="${key}"]`); if (!row) return;
+        const box = row.querySelector("[data-on]");
+        box.disabled = closed;
+        if (closed) { box.checked = false; row.classList.add("is-off"); }
+        row.style.opacity = closed ? ".5" : "";
+      });
+    }
 
     function refresh() {
       const rule = ruleEl.value;
       document.getElementById("b-toWrap").style.display = rule === "none" ? "none" : "";
-      const from = dayOf(fromEl), to = rule === "none" ? from : dayOf(toEl);
-      const days = targetDays(rule, from, Math.max(from, to));
-      const dw = DOW_JA[DOW(from)];
-      const extra = rule === "weekly" ? `（${dw}曜日）` : rule === "nth" ? `（第${Math.ceil(from / 7)}${dw}曜日）` : "";
+      const days = targetDates(rule, fromEl.value, rule === "none" ? fromEl.value : toEl.value);
+      const a = parseISO(fromEl.value);
+      const dw = DOW_JA[dowOf(a.y, a.m, a.d)];
+      const extra = rule === "weekly" ? `（${dw}曜日）` : rule === "nth" ? `（第${nthOf(a.d)}${dw}曜日）` : "";
+      const head = days.slice(0, 12).map(fmtMD).join("・");
       document.getElementById("b-count").innerHTML = days.length
-        ? `対象：<b>${days.length}日間</b>${extra} — ${days.map(d => `6/${d}`).join("・")}`
+        ? `対象：<b>${days.length}日間</b>${extra} — ${head}${days.length > 12 ? ` ほか${days.length - 12}日` : ""}`
         : `<span style="color:var(--bad-ink)">この条件に該当する日がありません</span>`;
-      return days;
     }
     [ruleEl, fromEl, toEl].forEach(el => el.addEventListener("change", refresh));
-    refresh();
+    refresh(); syncConflicts();
 
     document.getElementById("b-preview").addEventListener("click", () => {
       const rule = ruleEl.value;
-      const from = dayOf(fromEl), to = rule === "none" ? from : Math.max(dayOf(fromEl), dayOf(toEl));
-      const days = targetDays(rule, from, to);
+      const days = targetDates(rule, fromEl.value, rule === "none" ? fromEl.value : toEl.value);
       if (!days.length) { toast("該当する日がありません。繰り返しか期間を見直してください", "bad"); return; }
+      if (days.length > MAX_SPAN) { toast(`対象が多すぎます（${MAX_SPAN}日まで）。期間を短くしてください`, "bad"); return; }
 
-      // チェックの入った項目だけを拾う
-      const ops = [];
       const rows = [...document.querySelectorAll("#eqDrawer .set-row")].filter(r => r.querySelector("[data-on]").checked);
       if (!rows.length) { toast("設定する内容を1つ以上チェックしてください", "bad"); return; }
-      rows.forEach(row => {
+
+      // 各操作を「見出し・新しい値の表示・現在値の取り出し・適用関数」の形で持つ
+      const ops = rows.map(row => {
         const key = row.dataset.set;
-        if (key === "state") { const v = row.querySelector("[data-v]").value; ops.push({ label:`営業状態→${STATE[v].label}`, fn:x => { x.state = v; } }); }
-        else if (key === "hours") {
-          const h1 = row.querySelector("[data-h1]").value, h2 = row.querySelector("[data-h2]").value;
-          ops.push({ label:`営業時間→${h1}〜${h2}`, fn:x => { x.hours = `${h1}–${h2}`; } });
-        } else {
-          const id = key.slice(4), l = DATA.limitDefs.find(z => z.id === id);
-          const inf = row.querySelector("[data-inf]").checked;
-          const v = inf ? null : Math.max(0, parseInt(row.querySelector("[data-v]").value || "0", 10));
-          ops.push({ label:`${l.name}→${inf ? "無制限" : v + l.unit}`, fn:x => setLim(x, id, v) });
+        if (key === "state") {
+          const v = row.querySelector("[data-v]").value;
+          return { name:"営業状態", to:STATE[v].label, cur:x => STATE[x.state]?.label || "—", fn:x => { x.state = v; } };
         }
+        if (key === "hours") {
+          const h1 = row.querySelector("[data-h1]").value, h2 = row.querySelector("[data-h2]").value;
+          return { name:"営業時間", to:`${h1}〜${h2}`,
+                   cur:x => (x.hours || STATE[x.state]?.hours || "—").replace("–", "〜"),
+                   fn:x => { x.hours = `${h1}–${h2}`; } };
+        }
+        const id = key.slice(4), l = DATA.limitDefs.find(z => z.id === id);
+        const inf = row.querySelector("[data-inf]").checked;
+        const v = inf ? null : Math.max(0, parseInt(row.querySelector("[data-v]").value || "0", 10));
+        return { name:`${l.name}の上限`, to:inf ? "無制限" : `${v.toLocaleString()}${l.unit}`,
+                 cur:x => { const c = limVal(x, id); return c == null ? "無制限" : `${c.toLocaleString()}${l.unit}`; },
+                 fn:x => setLim(x, id, v) };
       });
 
-      pending = {
-        days,
-        summary: `<b>${days.length}日間</b>（${days.map(d => `6/${d}`).join("・")}）に <b>${ops.map(o => o.label).join(" ／ ")}</b> を設定します。内容を確認して登録してください。`,
-        apply: () => days.forEach(d => { const x = DATA.monthHauler.find(m => m.d === d); if (x) ops.forEach(o => o.fn(x)); }),
-      };
+      pending = { days, ops, excl:false };
       closeDrawer(); showPreview();
     });
   }
 
+  /* ---- 確認パネル：入力の復唱ではなく「結果の予告」を出す ---- */
+  const recOf = k => DATA.getDay(k);
+  const conflicts = () => pending.days.filter(k => recOf(k)?.custom);
+  const effective = () => pending.excl ? pending.days.filter(k => !recOf(k)?.custom) : pending.days;
+
+  function diffRows() {
+    const days = effective();
+    return pending.ops.map(op => {
+      const befores = [...new Set(days.map(k => { const x = recOf(k); return x ? op.cur(x) : "—"; }))];
+      const before = befores.length === 1 ? befores[0] : "日により異なる";
+      const same = befores.length === 1 && befores[0] === op.to;
+      return `<div class="dif-row${same ? " is-same" : ""}">
+        <span class="dn">${op.name}</span>
+        <span class="db">${before}</span>
+        <span class="da">${same ? "変更なし" : `→ <b>${op.to}</b>`}</span></div>`;
+    }).join("");
+  }
+
   function showPreview() {
-    document.getElementById("prevText").innerHTML = pending.summary;
+    const days = effective(), cf = conflicts();
+    document.getElementById("prevBody").innerHTML = `
+      <div class="pv-sec"><div class="pv-h">適用先</div>
+        <div class="pv-b"><b class="mono">${days.length}日間</b>　${days.slice(0, 14).map(fmtMD).join("・")}${days.length > 14 ? ` ほか${days.length - 14}日` : ""}</div></div>
+      <div class="pv-sec"><div class="pv-h">変更内容</div><div class="pv-b">${diffRows()}</div></div>
+      ${cf.length ? `<div class="pv-sec pv-warn"><div class="pv-h">ご確認ください</div>
+        <div class="pv-b">このうち <b>${cf.length}日間</b> はすでに個別設定があり、上書きされます（${cf.slice(0, 10).map(fmtMD).join("・")}${cf.length > 10 ? " ほか" : ""}）
+          <label class="check" style="margin-top:8px"><input type="checkbox" id="pvExcl" ${pending.excl ? "checked" : ""}> 個別設定のある日は除外する</label>
+        </div></div>` : ""}`;
+    document.getElementById("prevApply").textContent = `${days.length}日間に適用する`;
+    document.getElementById("prevApply").disabled = days.length === 0;
     document.getElementById("prevBar").hidden = false;
+    document.getElementById("pvExcl")?.addEventListener("change", e => { pending.excl = e.target.checked; showPreview(); });
     renderGrid();
-    pending.days.forEach(d => document.querySelector(`.cal-cell[data-d="${d}"]`)?.classList.add("is-preview"));
     document.getElementById("prevBar").scrollIntoView({ behavior:"smooth", block:"nearest" });
   }
   function clearPreview() { pending = null; document.getElementById("prevBar").hidden = true; renderGrid(); }
@@ -416,16 +509,19 @@
   document.getElementById("bulkBtn").addEventListener("click", bulkDrawer);
   document.getElementById("prevCancel").addEventListener("click", () => { clearPreview(); toast("まとめ登録をキャンセルしました", "default"); });
   document.getElementById("prevApply").addEventListener("click", () => {
-    const n = pending.days.length;
-    pending.apply(); clearPreview();
+    const days = effective(), n = days.length;
+    days.forEach(k => { const x = recOf(k); if (x) pending.ops.forEach(o => o.fn(x)); });
+    clearPreview();
     toast(`${n}日分の予定を登録しました`, "ok");
   });
 
-  /* ---- 月送り（デモ：当月固定） ---- */
-  document.getElementById("prevM").addEventListener("click", () => toast("前月の表示はデモでは固定です", "default"));
-  document.getElementById("nextM").addEventListener("click", () => toast("翌月の表示はデモでは固定です", "default"));
+  /* ---- 月送り ---- */
+  document.getElementById("prevM").addEventListener("click", () => goMonth(-1));
+  document.getElementById("nextM").addEventListener("click", () => goMonth(1));
   document.getElementById("selFactory").addEventListener("change", e => toast(e.target.value + " のカレンダーを表示（デモ）", "default"));
   document.getElementById("selGroup").addEventListener("change", e => toast("品目グループ：" + e.target.value + "（デモ）", "default"));
+
+  renderGrid();
 })();
 </script>
 </body>
