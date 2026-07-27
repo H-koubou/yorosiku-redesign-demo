@@ -9,6 +9,20 @@
 <link rel="manifest" href="manifest-admin.webmanifest">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 
+<style>
+  /* 来場チェック（受入要望 #2） */
+  .col-arrive { width:1%; white-space:nowrap; text-align:center; }
+  .arrive-box { display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+  .arrive-box input { width:18px; height:18px; accent-color:var(--brand); cursor:pointer; }
+  .tbl tbody tr.is-arrived { background:var(--surface-3); color:var(--muted); }
+  .tbl tbody tr.is-arrived:hover { background:var(--surface-3); }
+  .tbl tbody tr.is-arrived .td-strong { color:var(--ink-2); }
+  .tbl tbody tr.is-arrived .when-date,
+  .tbl tbody tr.is-arrived .td-mono { opacity:.72; }
+  .tbl tbody tr.is-arrived .pill { opacity:.75; }
+  .arrive-count { font-size:12.5px; color:var(--ink-2); font-weight:600; white-space:nowrap; margin-left:4px; padding-left:14px; border-left:1px solid var(--line-strong); }
+  .arrive-count b { font-family:var(--mono); color:var(--brand-strong); font-size:14px; }
+</style>
 </head>
 <body>
 <div class="layout" data-app="aozora" data-screen="home" data-role="管理者"
@@ -41,6 +55,7 @@
         <select class="select" style="max-width:170px" id="wfilter" aria-label="品目"></select>
         <input class="input" placeholder="運搬業者で検索" style="max-width:190px" aria-label="運搬業者">
         <label class="check"><input type="checkbox"> 承認待ちも表示</label>
+        <span class="arrive-count" id="arriveCount"></span>
         <div class="grow"></div>
         <a class="btn" href="aozora-calendar.html">カレンダーで見る</a>
         <a class="btn btn-primary" href="aozora-add.html">新規搬入予約</a>
@@ -51,6 +66,7 @@
         <div class="table-wrap">
           <table class="tbl">
             <thead><tr>
+              <th class="col-arrive">来場</th>
               <th>搬入予定</th><th>運搬業者 / 排出事業者</th><th>排出事業場</th>
               <th>品目</th><th>車種・台数</th><th>予約者</th><th>状態</th>
             </tr></thead>
@@ -69,16 +85,39 @@
   document.getElementById("wfilter").innerHTML =
     `<option value="">品目（すべて）</option>` + DATA.WASTE.map(w => `<option>${w}</option>`).join("");
 
-  document.getElementById("rows").innerHTML = DATA.confirmed.map(r => `
-    <tr>
+  const rowsEl = document.getElementById("rows");
+  const arrived = new Set();   // 来場済みの予約ID（受入要望 #2）
+
+  function render() {
+    rowsEl.innerHTML = DATA.confirmed.map(r => {
+      const on = arrived.has(r.id);
+      return `
+    <tr data-id="${r.id}" class="${on ? "is-arrived" : ""}">
+      <td class="col-arrive"><label class="arrive-box" title="来場したらチェック">
+        <input type="checkbox" data-arrive="${r.id}" ${on ? "checked" : ""} aria-label="${r.carrier} の来場">
+      </label></td>
       <td><div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div></td>
       <td><div class="cell-stack"><span class="td-strong">${r.carrier}</span><span class="td-sub">${r.emitter}</span></div></td>
       <td>${r.site}</td>
       <td>${UI.waste(r.waste)}</td>
       <td class="td-mono">${r.car} <span class="td-sub">×${r.units}台</span></td>
       <td>${r.by}</td>
-      <td>${UI.pill("fixed")}</td>
-    </tr>`).join("");
+      <td>${on ? `<span class="pill pill-neutral"><span class="dot"></span>来場済</span>` : UI.pill("fixed")}</td>
+    </tr>`;
+    }).join("");
+    document.getElementById("arriveCount").innerHTML =
+      `来場 <b>${arrived.size}</b> / ${DATA.confirmed.length}`;
+  }
+
+  rowsEl.addEventListener("change", e => {
+    const box = e.target.closest("[data-arrive]"); if (!box) return;
+    const id = box.dataset.arrive, r = DATA.confirmed.find(x => x.id === id);
+    if (box.checked) { arrived.add(id); toast(`${r.carrier} の来場を記録しました`, "ok"); }
+    else { arrived.delete(id); toast(`${r.carrier} の来場チェックを外しました`, "default"); }
+    render();
+  });
+
+  render();
 })();
 </script>
 </body>

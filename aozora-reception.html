@@ -16,6 +16,40 @@
   .wcalc .row.net { border-top:1px dashed var(--line-strong); margin-top:4px; padding-top:9px; }
   .wcalc .row.net b { font-size:22px; color:var(--brand-strong); font-family:var(--mono); }
   .seg-w button.is-active { background:var(--brand); color:#fff; }
+
+  /* 納品書プレビュー / 印刷（受入要望 #7）—— 単価・金額は載せず数量のみ */
+  .doc-overlay { position:fixed; inset:0; z-index:80; background:rgba(10,32,28,.68); overflow:auto; padding:28px 16px; }
+  .doc-bar { max-width:210mm; margin:0 auto 14px; display:flex; align-items:center; gap:10px; }
+  .doc-bar-t { flex:1; color:#fff; font-weight:700; font-size:14px; }
+  .doc-sheet { max-width:210mm; margin:0 auto; background:#fff; color:#111; padding:18mm 16mm; box-shadow:var(--shadow-pop);
+               font-family:var(--font); font-size:12.5px; line-height:1.7; }
+  .doc-sheet h2 { text-align:center; font-size:23px; letter-spacing:.5em; text-indent:.5em; margin:0 0 22px; font-weight:700; }
+  .doc-head { display:flex; justify-content:space-between; gap:24px; margin-bottom:20px; }
+  .doc-to { flex:1; }
+  .doc-to .to-name { font-size:16px; font-weight:700; border-bottom:1px solid #111; padding-bottom:5px; display:inline-block; min-width:62%; }
+  .doc-to .to-sub { margin-top:8px; color:#333; }
+  .doc-from { text-align:left; font-size:12px; white-space:nowrap; }
+  .doc-from .fm-name { font-weight:700; font-size:13.5px; }
+  .doc-meta { text-align:right; font-size:12px; margin-bottom:6px; }
+  .doc-meta span { font-family:var(--mono); }
+  .doc-lead { margin:6px 0 12px; }
+  .doc-tbl { width:100%; border-collapse:collapse; margin-bottom:14px; }
+  .doc-tbl th, .doc-tbl td { border:1px solid #111; padding:8px 10px; }
+  .doc-tbl th { background:#f0f0f0; font-weight:700; font-size:12px; text-align:center; }
+  .doc-tbl td.qty, .doc-tbl td.unit { text-align:right; font-family:var(--mono); white-space:nowrap; }
+  .doc-tbl td.unit { text-align:center; }
+  .doc-tbl tr.total td { font-weight:700; background:#f7f7f7; }
+  .doc-note { font-size:11px; color:#444; margin-top:16px; }
+  .doc-seal { float:right; width:76px; height:76px; border:1px solid #999; border-radius:4px; text-align:center; font-size:10px; color:#999; padding-top:6px; margin-top:8px; }
+  #printArea[hidden] { display:none; }
+
+  @media print {
+    body > *:not(#printArea) { display:none !important; }
+    #printArea { position:static !important; inset:auto !important; background:none !important; padding:0 !important; overflow:visible !important; }
+    #printArea .doc-bar { display:none !important; }
+    #printArea .doc-sheet { max-width:none; margin:0; padding:0; box-shadow:none; }
+    @page { size:A4 portrait; margin:16mm; }
+  }
 </style>
 </head>
 <body>
@@ -46,6 +80,17 @@
     <p class="hint" style="margin-top:10px">※ 1回計量＝車両マスターの登録空車重量を差引。2回計量＝入場で総重量、退場で空車を計量し正味を確定。トラックスケール連携は対応可能な現場のみオプション。</p>
   </div></main>
 </div>
+
+<!-- 納品書プレビュー（受入要望 #7）-->
+<div id="printArea" hidden class="doc-overlay" role="dialog" aria-modal="true" aria-label="納品書プレビュー">
+  <div class="doc-bar">
+    <span class="doc-bar-t">納品書プレビュー</span>
+    <button class="btn btn-sm" id="docClose">閉じる</button>
+    <button class="btn btn-primary btn-sm" id="docPrint">印刷 / PDF保存</button>
+  </div>
+  <div class="doc-sheet" id="docSheet"></div>
+</div>
+
 <script src="assets/data.js"></script><script src="assets/app.js"></script>
 <script>
 (function () {
@@ -80,7 +125,7 @@
         <td class="td-mono">${UI.waste(r.waste)} <span class="td-sub">${r.car}×${r.units}</span></td>
         <td><span class="pill ${cls}"><span class="dot"></span>${label}</span></td>
         <td class="wt">${r.gross != null ? r.gross.toLocaleString() : "—"} / ${r.tareUsed != null ? r.tareUsed.toLocaleString() : "—"} / <span class="net">${r.net != null ? r.net.toLocaleString() + "kg" : "—"}</span></td>
-        <td class="col-actions"><div class="row-actions">${act}${r.state === "done" ? `<button class="btn btn-ghost btn-sm" data-i="${i}" data-a="slip">伝票</button>` : ""}</div></td>
+        <td class="col-actions"><div class="row-actions">${act}${r.state === "done" ? `<button class="btn btn-ghost btn-sm" data-i="${i}" data-a="slip">伝票</button><button class="btn btn-ghost btn-sm" data-i="${i}" data-a="note">納品書</button>` : ""}</div></td>
       </tr>`;
     }).join("") || `<tr><td colspan="8"><div class="empty"><h3>該当なし</h3><p>照合条件に合う車両がありません。</p></div></td></tr>`;
     stats();
@@ -155,14 +200,83 @@
         <dt>総重量</dt><dd class="mono">${r.gross.toLocaleString()} kg</dd><dt>空車重量</dt><dd class="mono">${r.tareUsed.toLocaleString()} kg</dd>
         <dt>正味重量</dt><dd class="mono" style="font-weight:800;color:var(--brand-strong);font-size:18px">${r.net.toLocaleString()} kg</dd>
       </dl><div class="divider"></div><div class="hint">この実績は予約・マニフェスト・請求の下地になります（次フェーズで連携）。</div></div>
-      <div class="drawer-foot"><button class="btn btn-primary" style="flex:1" onclick="toast('計量伝票を発行しました','ok')">伝票を発行 / 印刷</button></div>`);
+      <div class="drawer-foot">
+        <button class="btn btn-primary" style="flex:1" onclick="toast('計量伝票を発行しました','ok')">伝票を発行 / 印刷</button>
+        <button class="btn" data-a="note" data-i="${i}">納品書</button>
+      </div>`);
+    document.querySelector('#eqDrawer [data-a="note"]')?.addEventListener("click", () => { closeDrawer(); deliveryNote(i); });
   }
+
+  /* ── 納品書（数量のみ・単価/金額は載せない）受入要望 #7 ────────────── */
+  const ISSUER = { name: "株式会社あおぞら 本社工場", addr: "東京都青梅市新町6-1", tel: "0428-00-0000" };
+  const overlay = document.getElementById("printArea");
+  const sheet = document.getElementById("docSheet");
+
+  function jpDate(iso) {
+    const [y, m, d] = String(iso || "2026-06-24").split("-").map(Number);
+    return `${y}年${m}月${d}日`;
+  }
+
+  function deliveryNote(i) {
+    const r = R[i];
+    const items = (r.waste || []).length ? r.waste : ["産業廃棄物"];
+    const single = items.length === 1;
+    const today = (document.querySelector(".layout")?.dataset.date || r.date).slice(0, 10);
+
+    // 品目が複数のときは内訳数量を割り振れないため空欄。合計（正味重量）のみ確定値を出す。
+    const bodyRows = items.map((w, n) => `
+        <tr>
+          <td>${w}</td>
+          <td class="qty">${single && r.net != null ? r.net.toLocaleString() : ""}</td>
+          <td class="unit">${single && r.net != null ? "kg" : ""}</td>
+          <td>${n === 0 ? `${r.car} ×${r.units}台` : ""}</td>
+        </tr>`).join("");
+    const blanks = Array.from({ length: Math.max(0, 4 - items.length) },
+      () => `<tr><td>&nbsp;</td><td class="qty"></td><td class="unit"></td><td></td></tr>`).join("");
+
+    sheet.innerHTML = `
+      <h2>納品書</h2>
+      <div class="doc-meta">発行日 <span>${jpDate(today)}</span>　／　No. <span>${r.no}</span></div>
+      <div class="doc-head">
+        <div class="doc-to">
+          <div class="to-name">${r.emitter}　御中</div>
+          <div class="to-sub">工事名・事業場：${r.site || "—"}</div>
+          <div class="to-sub">運搬業者：${r.carrier}　／　車番：${r.plate}</div>
+        </div>
+        <div class="doc-from">
+          <div class="fm-name">${ISSUER.name}</div>
+          <div>${ISSUER.addr}</div>
+          <div>TEL ${ISSUER.tel}</div>
+        </div>
+      </div>
+      <p class="doc-lead">下記のとおり受け入れいたしました。</p>
+      <table class="doc-tbl">
+        <thead><tr><th style="width:38%">品名</th><th style="width:20%">数量</th><th style="width:12%">単位</th><th>摘要</th></tr></thead>
+        <tbody>${bodyRows}${blanks}
+          <tr class="total"><td>合計（正味重量）</td><td class="qty">${r.net != null ? r.net.toLocaleString() : "—"}</td><td class="unit">kg</td><td>${r.mode}計量</td></tr>
+        </tbody>
+      </table>
+      <div class="doc-seal">受領印</div>
+      <p class="doc-note">※ 本書は搬入数量（計量実績）を証するものです。単価・金額は記載していません。<br>
+        ※ 請求に関する事項は別途ご案内いたします。</p>
+      <div style="clear:both"></div>`;
+
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeDoc() { overlay.hidden = true; document.body.style.overflow = ""; }
+  document.getElementById("docClose").addEventListener("click", closeDoc);
+  document.getElementById("docPrint").addEventListener("click", () => window.print());
+  overlay.addEventListener("click", e => { if (e.target === overlay) closeDoc(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.hidden) closeDoc(); });
 
   document.getElementById("rows").addEventListener("click", e => {
     const b = e.target.closest("[data-a]"); if (!b) return;
     const i = +b.dataset.i;
     if (b.dataset.a === "gross") grossDrawer(i);
     else if (b.dataset.a === "tare") tareDrawer(i);
+    else if (b.dataset.a === "note") deliveryNote(i);
     else slipDrawer(i);
   });
   document.getElementById("q").addEventListener("input", render);

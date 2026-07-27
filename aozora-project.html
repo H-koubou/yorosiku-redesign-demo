@@ -15,6 +15,20 @@
   .pager button.is-active { background:var(--brand); border-color:var(--brand); color:#fff; }
   .pager button:disabled { opacity:.4; cursor:default; }
   .row-actions { display:flex; gap:6px; }
+
+  /* 会社編集ドロワー内のユーザー一覧（受入要望 #8） */
+  .usr-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .usr-ttl { font-size:13px; font-weight:700; color:var(--ink); margin:0; flex:1; }
+  .usr-n { font-family:var(--mono); font-size:11.5px; color:var(--muted); font-weight:600; }
+  .usr-row { display:flex; align-items:center; gap:10px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); margin-bottom:7px; }
+  .usr-row .ub { flex:1; min-width:0; }
+  .usr-row .un { font-weight:700; font-size:12.5px; }
+  .usr-row .ue { font-family:var(--mono); font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .usr-row .pill { flex:none; font-size:11px; }
+  .usr-row .btn { flex:none; }
+  .usr-empty { font-size:12px; color:var(--muted); padding:14px; border:1px dashed var(--line-strong); border-radius:9px; text-align:center; }
+  .usr-form { border:1px solid var(--brand-soft); background:var(--brand-soft); border-radius:10px; padding:13px; margin-top:9px; }
+  .usr-form .form-grid { gap:11px 13px; }
 </style>
 </head>
 <body>
@@ -103,14 +117,93 @@
           <div class="field"><label class="label">電話番号2</label><input class="input" id="f-tel2" value="${c.tel2 || ""}"></div>
           <div class="field col-2"><label class="label">備考</label><textarea class="textarea" id="f-note">${c.note || ""}</textarea></div>
         </div>
+
+        <!-- この会社に所属するユーザー（受入要望 #8：会社編集の中でユーザーを扱えるように） -->
+        <div class="divider"></div>
+        <div class="usr-head">
+          <h3 class="usr-ttl">この会社のユーザー <span class="usr-n" id="usrN"></span></h3>
+          <button class="btn btn-ghost btn-sm" id="usrAdd" ${i == null ? "disabled" : ""}>＋ ユーザーを追加</button>
+        </div>
+        <div id="usrList"></div>
+        <div id="usrForm" hidden></div>
+        <p class="hint" style="margin-top:10px">ログインアカウントの実体は「基本情報 ／ ユーザー」と同一です。ここでの追加・削除はそちらにも反映されます。</p>
       </div>
       <div class="drawer-foot">
         <button class="btn" style="flex:1" data-close>キャンセル</button>
         <button class="btn btn-primary" style="flex:1" id="saveBtn">${i != null ? "保存する" : "登録する"}</button>
       </div>`);
+    /* ── この会社に所属するユーザー（受入要望 #8）───────────────────── */
+    const ROLES = ["予約者", "社内閲覧者", "社内管理者"];
+    const ROLE_CLS = { "システム開発者":"pill-brand", "社内管理者":"pill-warn", "社内閲覧者":"pill-neutral", "予約者":"pill-ok" };
+    const usrList = document.getElementById("usrList");
+    const usrForm = document.getElementById("usrForm");
+    const members = () => i == null ? [] : DATA.accounts.filter(u => u.company === c.name);
+
+    function renderUsers() {
+      const list = members();
+      document.getElementById("usrN").textContent = list.length ? `${list.length} 名` : "";
+      usrList.innerHTML = list.length
+        ? list.map(u => `
+        <div class="usr-row">
+          <div class="ub">
+            <div class="un">${u.name}${u.dept ? `<span class="td-sub" style="font-weight:400">　${u.dept}</span>` : ""}</div>
+            <div class="ue">${u.email}</div>
+          </div>
+          <span class="pill ${ROLE_CLS[u.role] || "pill-neutral"}"><span class="dot"></span>${u.role}</span>
+          <button class="btn btn-ghost btn-sm usr-del" data-email="${u.email}" style="color:var(--bad-ink)">削除</button>
+        </div>`).join("")
+        : `<div class="usr-empty">${i == null
+            ? "会社を登録すると、この画面でユーザーを追加できます。"
+            : "この会社に紐づくユーザーはまだ登録されていません。"}</div>`;
+    }
+
+    usrList.addEventListener("click", e => {
+      const d = e.target.closest(".usr-del"); if (!d) return;
+      const n = DATA.accounts.findIndex(u => u.email === d.dataset.email); if (n < 0) return;
+      if (confirm(`「${DATA.accounts[n].name}（${DATA.accounts[n].email}）」を削除しますか？`)) {
+        DATA.accounts.splice(n, 1); renderUsers(); toast("ユーザーを削除しました", "default");
+      }
+    });
+
+    document.getElementById("usrAdd").addEventListener("click", () => {
+      if (!usrForm.hidden) { usrForm.hidden = true; return; }
+      usrForm.innerHTML = `<div class="usr-form">
+          <div class="form-grid">
+            <div class="field"><label class="label">氏名 <span class="req">必須</span></label><input class="input" id="u-name"></div>
+            <div class="field"><label class="label">氏名カナ</label><input class="input" id="u-kana"></div>
+            <div class="field col-2"><label class="label">メールアドレス（ID） <span class="req">必須</span></label><input class="input td-mono" id="u-email" placeholder="例：yamada@example.co.jp"></div>
+            <div class="field"><label class="label">部署</label><input class="input" id="u-dept"></div>
+            <div class="field"><label class="label">操作制限（権限）</label><select class="select" id="u-role">${ROLES.map(r => `<option>${r}</option>`).join("")}</select></div>
+          </div>
+          <div class="flex" style="gap:8px;margin-top:12px">
+            <button class="btn btn-sm" id="u-cancel" style="flex:1">キャンセル</button>
+            <button class="btn btn-primary btn-sm" id="u-save" style="flex:1">このユーザーを追加</button>
+          </div>
+        </div>`;
+      usrForm.hidden = false;
+      document.getElementById("u-cancel").addEventListener("click", () => { usrForm.hidden = true; });
+      document.getElementById("u-save").addEventListener("click", () => {
+        const g = id => document.getElementById(id).value.trim();
+        if (!g("u-name") || !g("u-email")) { toast("氏名とメールアドレスは必須です", "bad"); return; }
+        if (DATA.accounts.some(u => u.email === g("u-email"))) { toast("そのメールアドレスは既に登録されています", "bad"); return; }
+        DATA.accounts.unshift({ email:g("u-email"), name:g("u-name"), kana:g("u-kana"), gender:"会社",
+          company:c.name, dept:g("u-dept"), status:"本会員", role:g("u-role"), tel:"", note:"" });
+        const nm = g("u-name");
+        usrForm.hidden = true; renderUsers();
+        toast(`${nm} を ${c.name} のユーザーとして追加しました`, "ok");
+      });
+    });
+
+    renderUsers();
+
     document.getElementById("saveBtn").addEventListener("click", () => {
       const g = id => document.getElementById(id).value.trim();
       if (!g("f-name") || !g("f-kana") || !g("f-email")) { toast("会社名・カナ・メールは必須です", "bad"); return; }
+      // 会社名を変更した場合、所属ユーザーの紐づけも追従させる
+      if (i != null && g("f-name") !== DATA.companies[i].name) {
+        const before = DATA.companies[i].name;
+        DATA.accounts.forEach(u => { if (u.company === before) u.company = g("f-name"); });
+      }
       const rec = { code:g("f-code"), corpNo:g("f-corp"), name:g("f-name"), kana:g("f-kana"), pref:g("f-pref"),
         addr:g("f-addr"), bldg:g("f-bldg"), rep:g("f-rep"), contact:g("f-contact"), email:g("f-email"),
         tel:g("f-tel"), tel2:g("f-tel2"), note:g("f-note"), count: i != null ? DATA.companies[i].count : 0 };

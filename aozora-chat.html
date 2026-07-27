@@ -53,7 +53,13 @@
 <script src="assets/data.js"></script><script src="assets/app.js"></script>
 <script>
 (function () {
-  const T = DATA.chatThreads; let cur = T[0];
+  const T = DATA.chatThreads;
+  // 申請一覧などから ?carrier=／?t= で指定されたスレッドを開く（受入要望 #3）
+  const qs = new URLSearchParams(location.search);
+  const want = qs.get("carrier"), wantId = qs.get("t");
+  let cur = (wantId && T.find(t => t.id === wantId))
+         || (want && T.find(t => t.carrier === want))
+         || T[0];
   function initial(name){ return name.replace(/^(株式会社|有限会社)/,"").charAt(0); }
   function renderList() {
     document.getElementById("cl").innerHTML = T.map(t => `
@@ -87,6 +93,7 @@
     if (t !== cur) t.unread = (t.unread || 0) + 1;
     renderList(); if (t === cur) renderThread();
   });
+  cur.unread = 0;   // 開いているスレッドは既読に
   renderList(); renderThread();
 })();
 </script>
