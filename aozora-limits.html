@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>制限項目マスター｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<style>
+  .row-actions { display:flex; gap:6px; }
+  .muted-row { opacity:.55; }
+  .lead { border:1px solid var(--brand); background:var(--brand-soft); border-radius:var(--r); padding:14px 17px; margin-bottom:20px; }
+  .lead h3 { font-size:13.5px; margin:0 0 6px; color:var(--brand-ink); }
+  .lead p { font-size:12.5px; color:var(--ink-2); line-height:1.75; margin:0; }
+  .prev { border:1px solid var(--line); border-radius:var(--r); background:var(--surface); padding:14px 16px; }
+  .prev-ttl { font-size:11.5px; font-weight:700; color:var(--muted); letter-spacing:.03em; margin-bottom:10px; }
+  .prev-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:12.5px; }
+  .prev-row:last-child { border-bottom:0; }
+  .prev-row .pn { flex:1; font-weight:600; }
+  .prev-row .pv { font-family:var(--mono); color:var(--muted); }
+  .prev-box { width:88px; height:30px; border:1px solid var(--line-strong); border-radius:7px; background:var(--surface-2); }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="limits" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="基本情報 ／ 制限項目マスター" data-date="2026-06-25 (木)">
+  <main class="main"><div class="page">
+    <div class="page-head"><h1 class="page-title">制限項目マスター</h1>
+      <p class="page-sub">1日あたりの受入量を「何で」絞るかを、現場ごとに自由に定義できます。</p></div>
+
+    <div class="lead">
+      <h3>開発側のカスタムなしで、制限のかけ方を変えられます</h3>
+      <p>台数で絞る現場、重さ（kg・t）で絞る現場、予約件数で絞る現場、品目の枚数で絞る現場——受入量の数え方は現場ごとに異なります。
+        ここで有効にした項目が、<b>カレンダーの「この日の設定」にそのまま入力欄として並びます</b>。項目を足す・単位を変える・使わない項目を無効にする、いずれも設定だけで行えます。</p>
+    </div>
+
+    <div class="toolbar">
+      <input class="input" id="q" placeholder="項目名・単位で検索" style="max-width:300px;flex:1" aria-label="検索">
+      <label class="check"><input type="checkbox" id="onlyActive"> 有効な項目のみ表示</label>
+      <div class="grow"></div>
+      <button class="btn btn-ghost" id="resetBtn" title="品目・制限項目を初期状態に戻します">初期状態に戻す</button>
+      <a class="btn" href="aozora-calendar.html">カレンダーで確認</a>
+      <button class="btn btn-primary" id="addBtn">＋ 制限項目を追加</button>
+    </div>
+
+    <div class="flex" style="gap:20px;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div class="card card-pad">
+          <div class="table-wrap"><table class="tbl">
+            <thead><tr><th class="col-actions">操作</th><th>状態</th><th>制限項目名</th><th>単位</th><th>対象</th><th>既定値</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table></div>
+        </div>
+      </div>
+      <div style="width:290px;flex:none">
+        <div class="prev">
+          <div class="prev-ttl">カレンダー「この日の設定」プレビュー</div>
+          <div id="prevList"></div>
+        </div>
+      </div>
+    </div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  let q = "", onlyActive = false;
+  const itemName = code => { const it = DATA.items.find(x => x.code === code); return it ? it.name : "—"; };
+
+  function filtered() {
+    const k = q.trim().toLowerCase();
+    return DATA.limitDefs.filter(l => {
+      if (onlyActive && !l.active) return false;
+      if (!k) return true;
+      return [l.name, l.unit].join(" ").toLowerCase().includes(k);
+    });
+  }
+
+  function render() {
+    const list = filtered();
+    document.getElementById("rows").innerHTML = list.map(l => {
+      const i = DATA.limitDefs.indexOf(l);
+      return `<tr data-i="${i}" class="${l.active ? "" : "muted-row"}">
+        <td class="col-actions"><div class="row-actions">
+          <button class="btn btn-ghost btn-sm act-edit" data-i="${i}">編集</button>
+          ${l.builtin ? `<span class="td-sub" style="align-self:center;font-size:11px">既定</span>`
+                      : `<button class="btn btn-ghost btn-sm act-del" data-i="${i}" style="color:var(--bad-ink)">削除</button>`}
+        </div></td>
+        <td>${l.active ? `<span class="pill pill-ok"><span class="dot"></span>有効</span>`
+                       : `<span class="pill pill-neutral"><span class="dot"></span>無効</span>`}</td>
+        <td class="td-strong">${l.name}</td>
+        <td class="td-mono">${l.unit}</td>
+        <td>${l.scope === "item"
+          ? `<span class="pill pill-brand" style="font-size:11px"><span class="dot"></span>品目：${itemName(l.itemCode)}</span>`
+          : `<span class="td-sub">その日の全予約</span>`}</td>
+        <td class="td-mono">${l.def == null ? "無制限" : l.def.toLocaleString()}</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="6"><div class="empty"><h3>該当する制限項目がありません</h3></div></td></tr>`;
+    renderPreview();
+  }
+
+  // 有効な項目が、そのままカレンダーの入力欄として並ぶことを見せる
+  function renderPreview() {
+    const on = DATA.limitDefs.filter(l => l.active);
+    document.getElementById("prevList").innerHTML = on.length
+      ? on.map(l => `<div class="prev-row">
+          <span class="pn">${l.name}${l.scope === "item" ? `<span class="td-sub">（${itemName(l.itemCode)}）</span>` : ""}</span>
+          <span class="prev-box"></span><span class="pv">${l.unit}</span></div>`).join("")
+      : `<div class="td-sub" style="font-size:12px">有効な制限項目がありません。上限を設定しない運用になります。</div>`;
+  }
+
+  function editDrawer(i) {
+    const l = i != null ? DATA.limitDefs[i] : { id:"", name:"", unit:"台", scope:"all", itemCode:null, def:null, active:true };
+    const itemOpts = DATA.items.map(it => `<option value="${it.code}" ${l.itemCode === it.code ? "selected" : ""}>${it.name}</option>`).join("");
+    openDrawer(`
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">制限項目マスター</div>
+        <h2 style="font-size:18px;margin-top:2px">${i != null ? "制限項目を編集" : "制限項目を追加"}</h2></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body">
+        <div class="form-grid">
+          <div class="field col-2"><label class="label">制限項目名 <span class="req">必須</span></label>
+            <input class="input" id="f-name" value="${l.name}" placeholder="例：重量 / 予約件数 / パレット数">
+            <span class="hint">カレンダーの入力欄の見出しになります</span></div>
+          <div class="field"><label class="label">単位 <span class="req">必須</span></label>
+            <input class="input" id="f-unit" list="unitList" value="${l.unit}">
+            <datalist id="unitList">${DATA.LIMIT_UNITS.map(u => `<option value="${u}">`).join("")}</datalist></div>
+          <div class="field"><label class="label">既定値</label>
+            <input class="input num" id="f-def" type="number" min="0" value="${l.def == null ? "" : l.def}" placeholder="空欄＝無制限"></div>
+          <div class="field col-2"><label class="label">対象</label>
+            <div class="seg" id="scopeSeg" style="width:100%">
+              <button type="button" data-s="all"  class="${l.scope !== "item" ? "is-active" : ""}" style="flex:1">その日の全予約</button>
+              <button type="button" data-s="item" class="${l.scope === "item" ? "is-active" : ""}" style="flex:1">特定の品目だけ</button>
+            </div></div>
+          <div class="field col-2" id="itemWrap"><label class="label">対象品目</label>
+            <select class="select" id="f-item">${itemOpts}</select>
+            <span class="hint">例：畳のように、その品目だけ枚数で上限を持たせたい場合</span></div>
+        </div>
+        <div class="divider"></div>
+        <label class="check"><input type="checkbox" id="f-active" ${l.active ? "checked" : ""}> この制限項目を使う</label>
+        <p class="hint" style="margin-top:7px">オフにすると、カレンダーの入力欄から外れます（設定済みの値は保持されます）。</p>
+      </div>
+      <div class="drawer-foot">
+        <button class="btn" style="flex:1" data-close>キャンセル</button>
+        <button class="btn btn-primary" style="flex:1" id="saveBtn">${i != null ? "保存する" : "追加する"}</button>
+      </div>`);
+
+    let scope = l.scope === "item" ? "item" : "all";
+    const itemWrap = document.getElementById("itemWrap");
+    const syncScope = () => { itemWrap.style.display = scope === "item" ? "" : "none"; };
+    document.getElementById("scopeSeg").addEventListener("click", e => {
+      const b = e.target.closest("button[data-s]"); if (!b) return;
+      document.querySelectorAll("#scopeSeg button").forEach(x => x.classList.remove("is-active"));
+      b.classList.add("is-active"); scope = b.dataset.s; syncScope();
+    });
+    syncScope();
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const g = id => document.getElementById(id).value.trim();
+      if (!g("f-name") || !g("f-unit")) { toast("制限項目名と単位は必須です", "bad"); return; }
+      const defRaw = g("f-def");
+      const rec = {
+        id: l.id || ("lim" + Date.now().toString(36)),
+        name: g("f-name"), unit: g("f-unit"), scope,
+        itemCode: scope === "item" ? g("f-item") : null,
+        def: defRaw === "" ? null : Math.max(0, parseInt(defRaw, 10)),
+        active: document.getElementById("f-active").checked,
+        builtin: !!l.builtin,
+      };
+      if (i != null) DATA.limitDefs[i] = rec; else DATA.limitDefs.push(rec); DATA.saveMaster();
+      closeDrawer(); render();
+      toast(i != null ? "制限項目を保存しました" : `「${rec.name}」を追加しました。カレンダーの設定に反映されます`, "ok");
+    });
+  }
+
+  document.getElementById("rows").addEventListener("click", e => {
+    const ed = e.target.closest(".act-edit"), del = e.target.closest(".act-del"), tr = e.target.closest("tr[data-i]");
+    if (del) { const i = +del.dataset.i;
+      if (confirm(`「${DATA.limitDefs[i].name}」を削除しますか？\nこの項目で設定済みの日別上限も参照されなくなります。`)) {
+        DATA.limitDefs.splice(i, 1); render(); DATA.saveMaster(); toast("制限項目を削除しました", "default"); } return; }
+    if (ed) { editDrawer(+ed.dataset.i); return; }
+    if (tr) editDrawer(+tr.dataset.i);
+  });
+  document.getElementById("addBtn").addEventListener("click", () => editDrawer(null));
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    if (!confirm("品目マスターと制限項目マスターを初期状態に戻します。よろしいですか？")) return;
+    DATA.resetMaster(); render(); toast("マスターを初期状態に戻しました", "default");
+  });
+  document.getElementById("q").addEventListener("input", e => { q = e.target.value; render(); });
+  document.getElementById("onlyActive").addEventListener("change", e => { onlyActive = e.target.checked; render(); });
+  render();
+})();
+</script>
+</body></html>

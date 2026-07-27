@@ -32,6 +32,25 @@
   .cap-line .v.inf { color:var(--brand-strong); }
   .mini-pill { font-size:10.5px; padding:2px 7px; }
   .closed-tag { font-size:11px; color:var(--muted); font-weight:700; }
+
+  /* まとめ登録のプレビュー（受入要望 #6）：保存前に「どの日に効くか」を見せる */
+  .cal-cell.is-preview { box-shadow:inset 0 0 0 2px var(--brand); background:var(--brand-soft); }
+  .cal-cell.is-preview:hover { background:var(--brand-soft); }
+  .prev-bar { display:flex; align-items:center; gap:12px; border:1px solid var(--brand); background:var(--brand-soft);
+              border-radius:var(--r); padding:11px 15px; margin-bottom:14px; }
+  .prev-bar .pb-t { flex:1; font-size:12.5px; color:var(--brand-ink); line-height:1.6; }
+  .prev-bar .pb-t b { font-family:var(--mono); font-size:14px; }
+  /* まとめ登録ドロワー（受入要望 #6） */
+  .set-row { border:1px solid var(--line); border-radius:9px; padding:11px 13px; margin-bottom:9px; background:var(--surface); }
+  .set-row.is-off { background:var(--surface-2); }
+  .set-row.is-off .set-body { opacity:.4; pointer-events:none; }
+  .set-head { display:flex; align-items:center; gap:8px; margin-bottom:0; }
+  .set-head .sh-name { font-size:12.5px; font-weight:700; flex:1; }
+  .set-head .sh-unit { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .set-body { margin-top:10px; }
+  .step-ttl { font-size:11.5px; font-weight:700; color:var(--brand-ink); letter-spacing:.04em; margin:0 0 9px; }
+  .lim-field { display:flex; align-items:center; gap:10px; }
+  .lim-field .input-affix { flex:1; }
 </style>
 </head>
 <body>
@@ -41,7 +60,7 @@
     <div class="page">
       <div class="page-head">
         <h1 class="page-title">カレンダー（品目予定管理）</h1>
-        <p class="page-sub">予約者トップに表示されるお知らせと、各日の営業状態・受入上限（車両・畳）を設定します。</p>
+        <p class="page-sub">予約者トップに表示されるお知らせと、各日の営業状態・受入上限を設定します。上限の項目は制限項目マスターで自由に定義できます。</p>
       </div>
 
       <div class="toolbar">
@@ -50,6 +69,8 @@
         <div class="field" style="gap:4px"><label class="label" style="font-size:11px">品目グループ</label>
           <select class="select" id="selGroup" style="min-width:170px"><option>畳</option><option>混合廃棄物</option><option>その他品目</option></select></div>
         <div class="grow"></div>
+        <a class="btn" href="aozora-limits.html">制限項目を編集</a>
+        <button class="btn btn-primary" id="bulkBtn">予定をまとめて登録</button>
         <button class="icon-btn" id="prevM" aria-label="前の月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M15 18l-6-6 6-6"/></svg></button>
         <div style="font-weight:700;min-width:118px;text-align:center" id="monthLabel">2026年 6月</div>
         <button class="icon-btn" id="nextM" aria-label="次の月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M9 18l6-6-6-6"/></svg></button>
@@ -58,12 +79,19 @@
       <!-- お知らせ編集（予約者トップに表示） -->
       <div class="notice-grid" id="notices"></div>
 
+      <!-- まとめ登録のプレビュー表示（受入要望 #6） -->
+      <div id="prevBar" hidden class="prev-bar">
+        <div class="pb-t" id="prevText"></div>
+        <button class="btn btn-sm" id="prevCancel">やめる</button>
+        <button class="btn btn-primary btn-sm" id="prevApply">この内容で登録する</button>
+      </div>
+
       <!-- 月カレンダー -->
       <div class="cal">
         <div class="cal-grid" id="dowRow"></div>
         <div class="cal-grid" id="monthGrid"></div>
       </div>
-      <p class="hint" style="margin-top:12px">日付をクリックすると、その日の<b>営業状態</b>・<b>車両/畳の受入上限</b>を設定できます。設定内容は予約者のカレンダー・申請画面に反映されます。</p>
+      <p class="hint" style="margin-top:12px">日付をクリックすると、その日の<b>営業状態</b>・<b>各制限項目の受入上限</b>を1日分だけ設定できます。曜日や期間でまとめて設定する場合は<b>「予定をまとめて登録」</b>を使ってください。設定内容は予約者のカレンダー・申請画面に反映されます。</p>
     </div>
   </main>
 </div>
@@ -120,10 +148,26 @@
     `<div class="cal-dow${i === 0 ? " sun" : ""}${i === 6 ? " sat" : ""}">${d}</div>`).join("");
 
   function statePill(s) { const st = STATE[s] || STATE.open; return `<span class="pill ${st.cls} mini-pill">${st.label}</span>`; }
+  /* ---- 制限項目は「制限項目マスター」で有効にしたものを動的に扱う（受入要望 #5）---- */
+  const activeLimits = () => DATA.limitDefs.filter(l => l.active);
+  const itemName = code => { const it = DATA.items.find(x => x.code === code); return it ? it.name : ""; };
+  const limVal = (x, id) => x.limits ? x.limits[id] : undefined;
+  function setLim(x, id, v) {
+    x.limits = x.limits || {};
+    x.limits[id] = v;
+    if (id === "car") x.car = v;          // 予約者カレンダーが参照する既存フィールドも同期させる
+    if (id === "tatami") x.tatami = v;
+  }
+
   function capLines(x) {
-    const carZero = x.car === 0, tatZero = x.tatami === 0;
-    return `<div class="cap-line"><span class="k">車両</span><span class="v ${x.car == null ? "inf" : carZero ? "zero" : ""}">${num(x.car)}${x.car == null ? "" : "台"}</span></div>
-      <div class="cap-line"><span class="k">畳</span><span class="v ${x.tatami == null ? "inf" : tatZero ? "zero" : ""}">${x.tatami == null ? "無制限" : num(x.tatami) + "枚"}</span></div>`;
+    const on = activeLimits(), show = on.slice(0, 3);
+    let html = show.map(l => {
+      const v = limVal(x, l.id);
+      const cls = v == null ? "inf" : v === 0 ? "zero" : "";
+      return `<div class="cap-line"><span class="k">${l.name}</span><span class="v ${cls}">${v == null ? "無制限" : num(v) + l.unit}</span></div>`;
+    }).join("");
+    if (on.length > show.length) html += `<div class="cap-line"><span class="k">ほか ${on.length - show.length} 項目</span><span class="v"></span></div>`;
+    return html;
   }
   function renderGrid() {
     const lead = 1; // 2026/6/1 = 月曜 → 日曜始まりで先頭1セル空き
@@ -135,7 +179,7 @@
         <div class="cal-cell-top"><span class="day-num">${x.d}</span>${statePill(x.state)}</div>
         ${x.state === "closed"
           ? `<div style="margin:auto 0;text-align:center"><span class="closed-tag">休業日</span></div>`
-          : `<div style="margin-top:6px">${capLines(x)}${st.hours ? `<div class="cap-line" style="margin-top:5px"><span class="k">時間</span><span class="v" style="font-size:10.5px">${st.hours}</span></div>` : ""}</div>`}
+          : `<div style="margin-top:6px">${capLines(x)}${(x.hours || st.hours) ? `<div class="cap-line" style="margin-top:5px"><span class="k">時間</span><span class="v" style="font-size:10.5px">${x.hours || st.hours}</span></div>` : ""}</div>`}
       </div>`;
     });
     document.getElementById("monthGrid").innerHTML = cells;
@@ -146,7 +190,16 @@
   function dayDrawer(d) {
     const x = DATA.monthHauler.find(m => m.d === d); if (!x) return;
     const stOpts = Object.entries(STATE).map(([k, v]) => `<option value="${k}" ${x.state === k ? "selected" : ""}>${v.label}${v.hours ? "（" + v.hours + "）" : ""}</option>`).join("");
-    const carInf = x.car == null, tatInf = x.tatami == null;
+    // 有効な制限項目の数だけ入力欄を生成（受入要望 #5）
+    const limFields = activeLimits().map(l => {
+      const v = limVal(x, l.id), inf = v == null;
+      return `<div class="field" style="margin-bottom:12px">
+        <label class="label">${l.name}の受入可能残数${l.scope === "item" ? ` <span class="opt">品目：${itemName(l.itemCode)}</span>` : ""}</label>
+        <div class="lim-field">
+          <div class="input-affix"><input class="input" data-lim="${l.id}" type="number" min="0" value="${inf ? "" : v}" placeholder="${l.def == null ? "" : l.def}"><span class="suffix">${l.unit}</span></div>
+          <label class="label" style="white-space:nowrap"><input type="checkbox" data-liminf="${l.id}" ${inf ? "checked" : ""} style="accent-color:var(--brand)"> 無制限</label>
+        </div></div>`;
+    }).join("") || `<p class="hint">有効な制限項目がありません。<a href="aozora-limits.html">制限項目マスター</a>で追加できます。</p>`;
     openDrawer(`
       <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">品目予定管理 ／ 2026年6月${d}日</div>
         <h2 style="font-size:18px;margin-top:2px">この日の設定</h2></div>
@@ -156,17 +209,10 @@
           <select class="select" id="f-state">${stOpts}</select></div>
         <div class="field" id="hoursRow" style="margin-bottom:16px"><label class="label">営業時間</label>
           <div style="display:flex;align-items:center;gap:8px">
-            <input class="input" id="f-h1" type="time" value="08:00" style="max-width:130px"><span class="hint">〜</span>
-            <input class="input" id="f-h2" type="time" value="16:30" style="max-width:130px"></div></div>
-        <div class="field" style="margin-bottom:8px"><label class="label">車両の受入可能残数</label>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="input-affix" style="flex:1"><input class="input" id="f-car" type="number" min="0" value="${carInf ? "" : x.car}" placeholder="台数"><span class="suffix">台</span></div>
-            <label class="label" style="white-space:nowrap"><input type="checkbox" id="f-car-inf" ${carInf ? "checked" : ""} style="accent-color:var(--brand)"> 無制限</label></div></div>
-        <div class="field"><label class="label">畳の受入可能残数</label>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="input-affix" style="flex:1"><input class="input" id="f-tat" type="number" min="0" value="${tatInf ? "" : x.tatami}" placeholder="枚数"><span class="suffix">枚</span></div>
-            <label class="label" style="white-space:nowrap"><input type="checkbox" id="f-tat-inf" ${tatInf ? "checked" : ""} style="accent-color:var(--brand)"> 無制限</label></div>
-          <span class="hint" style="margin-top:6px">残数は申請の承認に応じて自動で減ります。ここでは当日の上限を設定します。</span></div>
+            <input class="input" id="f-h1" type="time" value="${(x.hours || STATE[x.state]?.hours || "08:00–16:30").split("–")[0]}" style="max-width:130px"><span class="hint">〜</span>
+            <input class="input" id="f-h2" type="time" value="${(x.hours || STATE[x.state]?.hours || "08:00–16:30").split("–")[1] || "16:30"}" style="max-width:130px"></div></div>
+        ${limFields}
+        <span class="hint">残数は申請の承認に応じて自動で減ります。ここでは当日の上限を設定します。項目の追加・単位の変更は<a href="aozora-limits.html">制限項目マスター</a>から行えます。</span>
       </div>
       <div class="drawer-foot">
         <button class="btn" style="flex:1" data-close>キャンセル</button>
@@ -174,35 +220,205 @@
       </div>`);
 
     const stSel = document.getElementById("f-state"), hoursRow = document.getElementById("hoursRow");
-    const carInfEl = document.getElementById("f-car-inf"), tatInfEl = document.getElementById("f-tat-inf");
-    function syncState() {
-      const s = stSel.value; const closed = s === "closed";
+    function sync() {
+      const s = stSel.value, closed = s === "closed";
       hoursRow.style.display = closed ? "none" : "";
       if (s === "am") { document.getElementById("f-h1").value = "08:00"; document.getElementById("f-h2").value = "12:00"; }
       else if (s === "pm") { document.getElementById("f-h1").value = "12:00"; document.getElementById("f-h2").value = "16:30"; }
-      document.getElementById("f-car").disabled = closed; document.getElementById("f-tat").disabled = closed;
+      activeLimits().forEach(l => {
+        const inEl = document.querySelector(`[data-lim="${l.id}"]`), infEl = document.querySelector(`[data-liminf="${l.id}"]`);
+        if (inEl) inEl.disabled = closed || (infEl && infEl.checked);
+      });
     }
-    function syncInf() {
-      document.getElementById("f-car").disabled = carInfEl.checked || stSel.value === "closed";
-      document.getElementById("f-tat").disabled = tatInfEl.checked || stSel.value === "closed";
-    }
-    stSel.addEventListener("change", () => { syncState(); syncInf(); });
-    carInfEl.addEventListener("change", syncInf); tatInfEl.addEventListener("change", syncInf);
-    syncState(); syncInf();
+    stSel.addEventListener("change", sync);
+    document.querySelectorAll("[data-liminf]").forEach(el => el.addEventListener("change", sync));
+    sync();
 
     document.getElementById("saveBtn").addEventListener("click", () => {
       x.state = stSel.value;
-      if (x.state === "closed") { /* 残数は保持 */ }
-      else {
-        x.car = carInfEl.checked ? null : Math.max(0, parseInt(document.getElementById("f-car").value || "0", 10));
-        x.tatami = tatInfEl.checked ? null : Math.max(0, parseInt(document.getElementById("f-tat").value || "0", 10));
+      if (x.state !== "closed") {
+        x.hours = `${document.getElementById("f-h1").value}–${document.getElementById("f-h2").value}`;
+        activeLimits().forEach(l => {
+          const inEl = document.querySelector(`[data-lim="${l.id}"]`), infEl = document.querySelector(`[data-liminf="${l.id}"]`);
+          if (!inEl) return;
+          setLim(x, l.id, (infEl && infEl.checked) ? null : Math.max(0, parseInt(inEl.value || "0", 10)));
+        });
       }
       closeDrawer(); renderGrid(); toast(`6月${d}日の設定を保存しました`, "ok");
     });
   }
   document.getElementById("monthGrid").addEventListener("click", e => {
     const cell = e.target.closest(".cal-cell[data-d]"); if (!cell) return;
+    if (pending) { toast("プレビュー中は日付を編集できません。先に登録するか、やめるを選んでください", "default"); return; }
     dayDrawer(+cell.dataset.d);
+  });
+
+  /* ---- 予定をまとめて登録（受入要望 #6）--------------------------------
+     現行は「繰り返し条件を別々に持つ登録ブロック」が縦に並ぶため、どのルールがどの日に
+     効くのかを人が追えず入力ミスの温床になっていた。ここでは
+       ① 適用する日（繰り返し）を1つだけ決める
+       ② その日に設定する内容を全部まとめて入れる（触らない項目は「変更しない」）
+       ③ 保存前にカレンダー上へプレビュー反映してから確定
+     という順序に統一している。                                              */
+  const DOW = d => d % 7;                       // 2026年6月1日＝月曜（0=日）
+  const DOW_JA = ["日","月","火","水","木","金","土"];
+  const REPEATS = [
+    { id:"none",     label:"繰り返さない（その日だけ）" },
+    { id:"daily",    label:"毎日" },
+    { id:"weekly",   label:"毎週 同じ曜日" },
+    { id:"weekdays", label:"毎週平日（月〜金）" },
+    { id:"weekend",  label:"毎週 土日" },
+    { id:"nth",      label:"毎月 第◯◯曜日" },
+    { id:"monthEnd", label:"月末" },
+  ];
+  const DAYS = DATA.monthHauler.map(x => x.d);
+  const lastDay = DAYS[DAYS.length - 1];
+  let pending = null;   // { days:[], apply:fn, summary:"" }
+
+  function targetDays(rule, from, to) {
+    const inRange = d => d >= from && d <= to;
+    switch (rule) {
+      case "daily":    return DAYS.filter(inRange);
+      case "weekly":   return DAYS.filter(d => inRange(d) && DOW(d) === DOW(from));
+      case "weekdays": return DAYS.filter(d => inRange(d) && DOW(d) >= 1 && DOW(d) <= 5);
+      case "weekend":  return DAYS.filter(d => inRange(d) && (DOW(d) === 0 || DOW(d) === 6));
+      case "nth": {    // 「第n◯曜日」＝開始日と同じ週番号・同じ曜日
+        const nth = Math.ceil(from / 7);
+        return DAYS.filter(d => inRange(d) && DOW(d) === DOW(from) && Math.ceil(d / 7) === nth);
+      }
+      case "monthEnd": return DAYS.filter(d => d === lastDay && inRange(d));
+      default:         return DAYS.filter(d => d === from);
+    }
+  }
+
+  function bulkDrawer() {
+    const limRows = activeLimits().map(l => `
+      <div class="set-row is-off" data-set="lim:${l.id}">
+        <label class="set-head"><input type="checkbox" data-on style="accent-color:var(--brand)">
+          <span class="sh-name">${l.name}の受入上限${l.scope === "item" ? `（品目：${itemName(l.itemCode)}）` : ""}</span>
+          <span class="sh-unit">${l.unit}</span></label>
+        <div class="set-body"><div class="lim-field">
+          <div class="input-affix"><input class="input" data-v type="number" min="0" value="${l.def == null ? "" : l.def}"><span class="suffix">${l.unit}</span></div>
+          <label class="label" style="white-space:nowrap"><input type="checkbox" data-inf style="accent-color:var(--brand)"> 無制限</label>
+        </div></div>
+      </div>`).join("");
+
+    openDrawer(`
+      <div class="drawer-head"><div style="flex:1"><div class="tb-crumb">品目予定管理 ／ 2026年6月</div>
+        <h2 style="font-size:18px;margin-top:2px">予定をまとめて登録</h2></div>
+        <button class="icon-btn" data-close>${ICONS.x}</button></div>
+      <div class="drawer-body">
+        <p class="step-ttl">① 適用する日</p>
+        <div class="field" style="margin-bottom:12px"><label class="label">繰り返し</label>
+          <select class="select" id="b-rule">${REPEATS.map(r => `<option value="${r.id}">${r.label}</option>`).join("")}</select></div>
+        <div class="flex" style="gap:12px;margin-bottom:8px">
+          <div class="field" style="flex:1"><label class="label">開始日</label>
+            <input class="input" type="date" id="b-from" value="2026-06-01" min="2026-06-01" max="2026-06-${lastDay}"></div>
+          <div class="field" style="flex:1" id="b-toWrap"><label class="label">終了日</label>
+            <input class="input" type="date" id="b-to" value="2026-06-${lastDay}" min="2026-06-01" max="2026-06-${lastDay}"></div>
+        </div>
+        <p class="hint" id="b-count" style="margin-bottom:18px"></p>
+
+        <div class="divider"></div>
+        <p class="step-ttl">② この期間に設定する内容<span class="hint" style="font-weight:400"> — チェックした項目だけが上書きされます</span></p>
+
+        <div class="set-row is-off" data-set="state">
+          <label class="set-head"><input type="checkbox" data-on style="accent-color:var(--brand)">
+            <span class="sh-name">営業状態</span></label>
+          <div class="set-body">
+            <select class="select" data-v>${Object.entries(STATE).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join("")}</select>
+          </div>
+        </div>
+
+        <div class="set-row is-off" data-set="hours">
+          <label class="set-head"><input type="checkbox" data-on style="accent-color:var(--brand)">
+            <span class="sh-name">営業時間</span></label>
+          <div class="set-body" style="display:flex;align-items:center;gap:8px">
+            <input class="input" type="time" data-h1 value="08:00" style="max-width:130px"><span class="hint">〜</span>
+            <input class="input" type="time" data-h2 value="16:30" style="max-width:130px">
+          </div>
+        </div>
+
+        ${limRows}
+        <p class="hint" style="margin-top:10px">制限項目は<a href="aozora-limits.html">制限項目マスター</a>で有効にしたものが並びます。</p>
+      </div>
+      <div class="drawer-foot">
+        <button class="btn" style="flex:1" data-close>キャンセル</button>
+        <button class="btn btn-primary" style="flex:1" id="b-preview">③ カレンダーで確認する</button>
+      </div>`);
+
+    const ruleEl = document.getElementById("b-rule"), fromEl = document.getElementById("b-from"), toEl = document.getElementById("b-to");
+    const dayOf = el => parseInt(el.value.slice(8), 10) || 1;
+
+    document.querySelectorAll("#eqDrawer .set-row").forEach(row => {
+      row.querySelector("[data-on]").addEventListener("change", e => row.classList.toggle("is-off", !e.target.checked));
+      const inf = row.querySelector("[data-inf]");
+      if (inf) inf.addEventListener("change", () => { row.querySelector("[data-v]").disabled = inf.checked; });
+    });
+
+    function refresh() {
+      const rule = ruleEl.value;
+      document.getElementById("b-toWrap").style.display = rule === "none" ? "none" : "";
+      const from = dayOf(fromEl), to = rule === "none" ? from : dayOf(toEl);
+      const days = targetDays(rule, from, Math.max(from, to));
+      const dw = DOW_JA[DOW(from)];
+      const extra = rule === "weekly" ? `（${dw}曜日）` : rule === "nth" ? `（第${Math.ceil(from / 7)}${dw}曜日）` : "";
+      document.getElementById("b-count").innerHTML = days.length
+        ? `対象：<b>${days.length}日間</b>${extra} — ${days.map(d => `6/${d}`).join("・")}`
+        : `<span style="color:var(--bad-ink)">この条件に該当する日がありません</span>`;
+      return days;
+    }
+    [ruleEl, fromEl, toEl].forEach(el => el.addEventListener("change", refresh));
+    refresh();
+
+    document.getElementById("b-preview").addEventListener("click", () => {
+      const rule = ruleEl.value;
+      const from = dayOf(fromEl), to = rule === "none" ? from : Math.max(dayOf(fromEl), dayOf(toEl));
+      const days = targetDays(rule, from, to);
+      if (!days.length) { toast("該当する日がありません。繰り返しか期間を見直してください", "bad"); return; }
+
+      // チェックの入った項目だけを拾う
+      const ops = [];
+      const rows = [...document.querySelectorAll("#eqDrawer .set-row")].filter(r => r.querySelector("[data-on]").checked);
+      if (!rows.length) { toast("設定する内容を1つ以上チェックしてください", "bad"); return; }
+      rows.forEach(row => {
+        const key = row.dataset.set;
+        if (key === "state") { const v = row.querySelector("[data-v]").value; ops.push({ label:`営業状態→${STATE[v].label}`, fn:x => { x.state = v; } }); }
+        else if (key === "hours") {
+          const h1 = row.querySelector("[data-h1]").value, h2 = row.querySelector("[data-h2]").value;
+          ops.push({ label:`営業時間→${h1}〜${h2}`, fn:x => { x.hours = `${h1}–${h2}`; } });
+        } else {
+          const id = key.slice(4), l = DATA.limitDefs.find(z => z.id === id);
+          const inf = row.querySelector("[data-inf]").checked;
+          const v = inf ? null : Math.max(0, parseInt(row.querySelector("[data-v]").value || "0", 10));
+          ops.push({ label:`${l.name}→${inf ? "無制限" : v + l.unit}`, fn:x => setLim(x, id, v) });
+        }
+      });
+
+      pending = {
+        days,
+        summary: `<b>${days.length}日間</b>（${days.map(d => `6/${d}`).join("・")}）に <b>${ops.map(o => o.label).join(" ／ ")}</b> を設定します。内容を確認して登録してください。`,
+        apply: () => days.forEach(d => { const x = DATA.monthHauler.find(m => m.d === d); if (x) ops.forEach(o => o.fn(x)); }),
+      };
+      closeDrawer(); showPreview();
+    });
+  }
+
+  function showPreview() {
+    document.getElementById("prevText").innerHTML = pending.summary;
+    document.getElementById("prevBar").hidden = false;
+    renderGrid();
+    pending.days.forEach(d => document.querySelector(`.cal-cell[data-d="${d}"]`)?.classList.add("is-preview"));
+    document.getElementById("prevBar").scrollIntoView({ behavior:"smooth", block:"nearest" });
+  }
+  function clearPreview() { pending = null; document.getElementById("prevBar").hidden = true; renderGrid(); }
+
+  document.getElementById("bulkBtn").addEventListener("click", bulkDrawer);
+  document.getElementById("prevCancel").addEventListener("click", () => { clearPreview(); toast("まとめ登録をキャンセルしました", "default"); });
+  document.getElementById("prevApply").addEventListener("click", () => {
+    const n = pending.days.length;
+    pending.apply(); clearPreview();
+    toast(`${n}日分の予定を登録しました`, "ok");
   });
 
   /* ---- 月送り（デモ：当月固定） ---- */

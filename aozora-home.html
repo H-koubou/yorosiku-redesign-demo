@@ -30,8 +30,8 @@
   <main class="main">
     <div class="page">
       <div class="page-head">
-        <h1 class="page-title">予約確定一覧</h1>
-        <p class="page-sub">本日の搬入確定分。日付・品目・運搬業者で絞り込めます。</p>
+        <h1 class="page-title" id="pgTitle">予約確定一覧</h1>
+        <p class="page-sub" id="pgSub">本日の搬入確定分。日付・品目・運搬業者で絞り込めます。</p>
       </div>
 
       <!-- 今日やること -->
@@ -65,11 +65,7 @@
       <div class="card card-pad">
         <div class="table-wrap">
           <table class="tbl">
-            <thead><tr>
-              <th class="col-arrive">来場</th>
-              <th>搬入予定</th><th>運搬業者 / 排出事業者</th><th>排出事業場</th>
-              <th>品目</th><th>車種・台数</th><th>予約者</th><th>状態</th>
-            </tr></thead>
+            <thead id="thead"></thead>
             <tbody id="rows"></tbody>
           </table>
         </div>
@@ -86,34 +82,63 @@
     `<option value="">品目（すべて）</option>` + DATA.WASTE.map(w => `<option>${w}</option>`).join("");
 
   const rowsEl = document.getElementById("rows");
-  const arrived = new Set();   // 来場済みの予約ID（受入要望 #2）
+  const arrived = new Set();   // 来場済み（回収では回収済み）の予約ID（受入要望 #2）
+
+  /* 予約種別（受入要望 #1）。carry=持込／collect=回収 */
+  const TYPE = window.RESV_TYPE === "collect" ? "collect" : "carry";
+  const LIST = TYPE === "collect" ? DATA.collectRes.filter(r => r.status === "fixed") : DATA.confirmed;
+  const T = TYPE === "collect"
+    ? { title:"回収予約一覧", sub:"確定済みの回収分。希望日時の許容範囲と品目で絞り込めます。",
+        col:"回収済", when:"希望日時（許容範囲）", done:"回収済", verb:"回収" }
+    : { title:"予約確定一覧", sub:"本日の搬入確定分。日付・品目・運搬業者で絞り込めます。",
+        col:"来場",   when:"搬入予定",             done:"来場済", verb:"来場" };
+
+  document.getElementById("pgTitle").textContent = T.title;
+  document.getElementById("pgSub").textContent = T.sub;
+  document.querySelector(".layout").dataset.title = T.title;
+  document.getElementById("thead").innerHTML = `<tr>
+      <th class="col-arrive">${T.col}</th>
+      <th>${T.when}</th><th>運搬業者 / 排出事業者</th><th>排出事業場</th>
+      <th>品目</th><th>車種・台数</th><th>予約者</th><th>状態</th>
+    </tr>`;
+
+  // 回収は「いつなら受けられるか」の幅を持つので、1点の日時ではなく範囲として見せる
+  function whenCell(r) {
+    if (TYPE !== "collect") {
+      return `<div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div>`;
+    }
+    const span = r.from === r.to ? UI.md(r.from) : `${UI.md(r.from)} 〜 ${UI.md(r.to)}`;
+    const detail = r.slots.length ? r.slots.join("・") : DATA.RANGE_LABEL[r.range];
+    return `<div class="cell-stack"><span class="td-strong mono">${span}</span>
+      <span class="td-sub">${detail}</span></div>`;
+  }
 
   function render() {
-    rowsEl.innerHTML = DATA.confirmed.map(r => {
+    rowsEl.innerHTML = LIST.map(r => {
       const on = arrived.has(r.id);
       return `
     <tr data-id="${r.id}" class="${on ? "is-arrived" : ""}">
-      <td class="col-arrive"><label class="arrive-box" title="来場したらチェック">
-        <input type="checkbox" data-arrive="${r.id}" ${on ? "checked" : ""} aria-label="${r.carrier} の来場">
+      <td class="col-arrive"><label class="arrive-box" title="${T.verb}したらチェック">
+        <input type="checkbox" data-arrive="${r.id}" ${on ? "checked" : ""} aria-label="${r.carrier} の${T.verb}">
       </label></td>
-      <td><div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div></td>
+      <td>${whenCell(r)}</td>
       <td><div class="cell-stack"><span class="td-strong">${r.carrier}</span><span class="td-sub">${r.emitter}</span></div></td>
       <td>${r.site}</td>
       <td>${UI.waste(r.waste)}</td>
       <td class="td-mono">${r.car} <span class="td-sub">×${r.units}台</span></td>
       <td>${r.by}</td>
-      <td>${on ? `<span class="pill pill-neutral"><span class="dot"></span>来場済</span>` : UI.pill("fixed")}</td>
+      <td>${on ? `<span class="pill pill-neutral"><span class="dot"></span>${T.done}</span>` : UI.pill("fixed")}</td>
     </tr>`;
-    }).join("");
+    }).join("") || `<tr><td colspan="8"><div class="empty"><h3>確定済みの${TYPE === "collect" ? "回収" : "搬入"}予約はありません</h3></div></td></tr>`;
     document.getElementById("arriveCount").innerHTML =
-      `来場 <b>${arrived.size}</b> / ${DATA.confirmed.length}`;
+      `${T.verb} <b>${arrived.size}</b> / ${LIST.length}`;
   }
 
   rowsEl.addEventListener("change", e => {
     const box = e.target.closest("[data-arrive]"); if (!box) return;
-    const id = box.dataset.arrive, r = DATA.confirmed.find(x => x.id === id);
-    if (box.checked) { arrived.add(id); toast(`${r.carrier} の来場を記録しました`, "ok"); }
-    else { arrived.delete(id); toast(`${r.carrier} の来場チェックを外しました`, "default"); }
+    const id = box.dataset.arrive, r = LIST.find(x => x.id === id);
+    if (box.checked) { arrived.add(id); toast(`${r.carrier} の${T.verb}を記録しました`, "ok"); }
+    else { arrived.delete(id); toast(`${r.carrier} の${T.verb}チェックを外しました`, "default"); }
     render();
   });
 

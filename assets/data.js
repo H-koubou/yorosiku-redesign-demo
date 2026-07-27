@@ -288,9 +288,87 @@
       "<p>搬入の際は受付番号をご提示ください。混雑時は10時以降の搬入が比較的スムーズです。</p>" },
   };
 
+  /* --- 品目マスター（受入要望 #9：取扱品目は会社ごとに異なる）------------- */
+  // limitId = この品目の受入量をどの制限項目で数えるか（limitDefs.id）。null = 数量制限なし
+  const items = [
+    { code:"I01", name:"廃プラスチック類", short:"廃プラ",   unit:"kg", limitId:"weight", accept:true },
+    { code:"I02", name:"紙くず",           short:"紙",       unit:"kg", limitId:"weight", accept:true },
+    { code:"I03", name:"木くず",           short:"木",       unit:"kg", limitId:"weight", accept:true },
+    { code:"I04", name:"繊維くず",         short:"繊維",     unit:"kg", limitId:"weight", accept:true },
+    { code:"I05", name:"畳",               short:"畳",       unit:"枚", limitId:"tatami", accept:true },
+    { code:"I06", name:"ゴムくず",         short:"ゴム",     unit:"kg", limitId:"weight", accept:true },
+    { code:"I07", name:"金属くず",         short:"金属",     unit:"kg", limitId:"weight", accept:true },
+    { code:"I08", name:"ガラスくず・コンクリートくず及び陶磁器くず", short:"ガラ陶", unit:"kg", limitId:"weight", accept:true },
+    { code:"I09", name:"がれき類",         short:"がれき",   unit:"m3", limitId:"volume", accept:true },
+    { code:"I10", name:"混合廃棄物",       short:"混廃",     unit:"m3", limitId:"volume", accept:true },
+    { code:"I11", name:"廃油",             short:"廃油",     unit:"L",  limitId:null,     accept:true },
+    { code:"I12", name:"廃酸・廃アルカリ", short:"廃酸",     unit:"L",  limitId:null,     accept:false },
+  ];
+
+  /* --- 制限項目マスター（受入要望 #5）------------------------------------
+     現場ごとに「何で受入量を絞るか」が違うため、軸そのものをユーザーが定義できる形にする。
+     scope: "all" = その日の全予約に対する上限 ／ "item" = 特定品目にだけかかる上限   */
+  const limitDefs = [
+    { id:"car",    name:"車両",     unit:"台", scope:"all",  itemCode:null,  def:30,    active:true,  builtin:true },
+    { id:"tatami", name:"畳",       unit:"枚", scope:"item", itemCode:"I05", def:200,   active:true,  builtin:true },
+    { id:"count",  name:"予約件数", unit:"件", scope:"all",  itemCode:null,  def:24,    active:false },
+    { id:"weight", name:"重量",     unit:"kg", scope:"all",  itemCode:null,  def:20000, active:false },
+    { id:"volume", name:"容積",     unit:"m3", scope:"all",  itemCode:null,  def:60,    active:false },
+  ];
+  const LIMIT_UNITS = ["台", "枚", "件", "kg", "t", "m3", "L", "本", "箱"];
+
+  /* マスターの編集内容を画面遷移をまたいで保持（デモ用の簡易永続化）。
+     制限項目を追加 → カレンダーに入力欄が増える、という流れを実機同様に確認できるようにする。 */
+  const MASTER_STORE = "yorosiku-master-v1";
+  const DEFAULT_LIMITS = JSON.parse(JSON.stringify(limitDefs));
+  const DEFAULT_ITEMS  = JSON.parse(JSON.stringify(items));
+  function saveMaster() {
+    try { localStorage.setItem(MASTER_STORE, JSON.stringify({ limitDefs, items })); } catch (_) {}
+  }
+  function resetMaster() {
+    try { localStorage.removeItem(MASTER_STORE); } catch (_) {}
+    limitDefs.length = 0; limitDefs.push(...JSON.parse(JSON.stringify(DEFAULT_LIMITS)));
+    items.length = 0;     items.push(...JSON.parse(JSON.stringify(DEFAULT_ITEMS)));
+  }
+  (function loadMaster() {
+    try {
+      const raw = localStorage.getItem(MASTER_STORE); if (!raw) return;
+      const m = JSON.parse(raw);
+      if (Array.isArray(m.limitDefs) && m.limitDefs.length) { limitDefs.length = 0; limitDefs.push(...m.limitDefs); }
+      if (Array.isArray(m.items) && m.items.length)         { items.length = 0;     items.push(...m.items); }
+    } catch (_) {}
+  })();
+
+  // 日別の制限値を limits{} に正規化（既存の car / tatami は残したまま両方を同期させる）
+  monthHauler.forEach(x => {
+    x.limits = x.limits || {};
+    if (!("car" in x.limits))    x.limits.car    = ("car" in x)    ? x.car    : null;
+    if (!("tatami" in x.limits)) x.limits.tatami = ("tatami" in x) ? x.tatami : null;
+  });
+
+  /* --- 回収予約（受入要望 #1）--------------------------------------------
+     持込＝日付＋AM/PM を1点で指定。回収＝「いつなら受けられるか」の許容範囲を持つ。
+     range: day=終日可 / time=当日の時間帯 / span=複数日 / each=日ごとに締め時刻が違う   */
+  const collectRes = [
+    { id:"k1", carrier:"多摩運輸株式会社", emitter:"株式会社山田工務店", site:"立川駅前再開発 B工区",
+      waste:["混合廃棄物"], car:"4tダンプ", units:1, range:"day",  from:"2026-06-26", to:"2026-06-26",
+      slots:[], note:"終日いつでも可", by:"多摩運輸 佐藤", at:"06-24 09:12", status:"new" },
+    { id:"k2", carrier:"エコ物流株式会社", emitter:"関東建設株式会社", site:"八王子第3現場",
+      waste:["がれき類"], car:"大型ダンプ", units:2, range:"time", from:"2026-06-26", to:"2026-06-26",
+      slots:["13:00","13:30","14:00","14:30"], note:"13〜15時の間で", by:"関東建設 田中", at:"06-24 10:40", status:"request" },
+    { id:"k3", carrier:"緑川興業株式会社", emitter:"緑川建設株式会社", site:"国立庁舎 解体現場",
+      waste:["廃プラスチック類","紙くず"], car:"4tウイング", units:1, range:"span", from:"2026-06-26", to:"2026-06-30",
+      slots:[], note:"6/26〜6/30 のいずれかで", by:"緑川興業 高橋", at:"06-24 14:02", status:"new" },
+    { id:"k4", carrier:"サンプル建材株式会社", emitter:"みらい建設株式会社", site:"解体現場",
+      waste:["畳"], car:"大型アームロール", units:1, range:"each", from:"2026-06-27", to:"2026-06-28",
+      slots:["06-27 12:00まで","06-28 15:00まで"], note:"日によって締め時刻が違います", by:"みらい建設 山田太郎", at:"06-24 16:20", status:"fixed" },
+  ];
+  const RANGE_LABEL = { day:"終日可", time:"時間帯指定", span:"期間内どこか", each:"日ごとに指定" };
+
   window.DATA = { WASTE, applyQueue, confirmed, week, CAP, board,
     carriers, emitters, factories, drivers, vehicles, sites, users, regulars, cancels, haulerRes, announcements, monthHauler,
-    notifs, chatThreads, companies, accounts, vehicleTypes, mails, mailGroups, calNotices };
+    notifs, chatThreads, companies, accounts, vehicleTypes, mails, mailGroups, calNotices,
+    items, limitDefs, LIMIT_UNITS, collectRes, RANGE_LABEL, saveMaster, resetMaster };
 
   /* --- Render helpers --------------------------------------------------- */
   const STATUS = {
@@ -323,6 +401,30 @@
     },
 
     ampm(v) { return `<span class="ampm ${v.toLowerCase()}">${v}</span>`; },
+
+    // 回収予約の希望日時グリッド用（受入要望 #1）：日付＋時刻から空き状況を決定的に返す
+    // ok=空きあり / few=残りわずか / ng=不可。デモ用の擬似値で、本番は実際の受入残から算出する。
+    slot(dateStr, time) {
+      const d = new Date(dateStr + "T00:00:00");
+      if (d.getDay() === 0) return "ng";                       // 日曜は休業
+      let h = 2166136261; const s = dateStr + time;
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      const n = (h >>> 0) % 100;
+      if (n < 12) return "ng";
+      if (n < 22) return "few";
+      return "ok";
+    },
+    slotMark(st) { return st === "ng" ? "×" : st === "few" ? "△" : "○"; },
+
+    // "2026-06-26" → "6/26(金)"
+    md(dateStr) {
+      const d = new Date(dateStr + "T00:00:00");
+      return `${d.getMonth() + 1}/${d.getDate()}(${["日","月","火","水","木","金","土"][d.getDay()]})`;
+    },
+    addDays(dateStr, n) {
+      const d = new Date(dateStr + "T00:00:00"); d.setDate(d.getDate() + n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    },
 
     // 受付番号（予約から決定的に生成）
     recNo(seed) {

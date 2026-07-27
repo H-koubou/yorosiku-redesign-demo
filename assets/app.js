@@ -15,11 +15,19 @@
         { label: "ダッシュボード", items: [
           { id: "dashboard", label: "ダッシュボード", href: "aozora-dashboard.html", icon: "chartbar" },
         ]},
-        { label: "予約管理", items: [
-          { id: "home",     label: "予約確定一覧", href: "aozora-home.html",     icon: "check" },
-          { id: "apply",    label: "申請一覧",     href: "aozora-apply.html",    icon: "inbox", badge: 75, badgeType: "warn" },
+        // 受入要望 #1：予約管理を「持込」と「回収」に分ける
+        { label: "予約管理（持込）", items: [
+          { id: "home",     label: "予約確定一覧", href: "aozora-home.html?type=carry",  icon: "check" },
+          { id: "apply",    label: "申請一覧",     href: "aozora-apply.html?type=carry", icon: "inbox", badge: 75, badgeType: "warn" },
           { id: "cancel",   label: "取消申請一覧", href: "aozora-cancel.html",   icon: "ban",   badge: 10, badgeType: "quiet" },
           { id: "regular",  label: "定期予約",     href: "aozora-regular.html",  icon: "repeat" },
+        ]},
+        { label: "予約管理（回収）", items: [
+          { id: "khome",    label: "回収予約一覧", href: "aozora-home.html?type=collect",  icon: "check" },
+          { id: "kapply",   label: "回収申請一覧", href: "aozora-apply.html?type=collect", icon: "inbox", badge: 2, badgeType: "warn" },
+          { id: "kadd",     label: "回収申込登録", href: "aozora-collect-add.html", icon: "plus" },
+        ]},
+        { label: "予定・連絡", items: [
           { id: "calendar", label: "カレンダー",   href: "aozora-calendar.html", icon: "calendar" },
           { id: "chat",     label: "チャット",     href: "aozora-chat.html",     icon: "chat" },
         ]},
@@ -29,6 +37,8 @@
         ]},
         { label: "基本情報（マスター）", items: [
           { id: "factory",  label: "工場",          href: "aozora-factory.html",  icon: "factory" },
+          { id: "item",     label: "品目",          href: "aozora-item.html",     icon: "grid" },
+          { id: "limits",   label: "制限項目",      href: "aozora-limits.html",   icon: "scale" },
           { id: "user",     label: "ユーザー",      href: "aozora-user.html",     icon: "users" },
           { id: "project",  label: "会社（予約者）", href: "aozora-project.html",  icon: "home" },
           { id: "vehicle",  label: "車種",          href: "aozora-vehicle.html",  icon: "truck" },
@@ -60,12 +70,23 @@
 
   function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 
+  // 現在地のキー（ファイル名＋予約種別）。?type=carry / ?type=collect で同じ画面を出し分けるため（受入要望 #1）
+  function navKey(href) {
+    const [file, query] = String(href).split("?");
+    const t = query ? (new URLSearchParams(query).get("type") || "") : "";
+    return (file || "index.html") + "|" + t;
+  }
+  const HERE = navKey((location.pathname.split("/").pop() || "index.html") + location.search);
+  window.RESV_TYPE = new URLSearchParams(location.search).get("type") || "carry";
+
   function buildSidebar(appKey, screen) {
     const app = APPS[appKey];
+    // href が完全一致する項目があればそれを優先。無ければ従来どおり data-screen の id で判定（編集画面など）
+    const exact = app.groups.some(g => g.items.some(it => navKey(it.href) === HERE));
     const groups = app.groups.map(g => `
       <div class="nav-group-label">${g.label}</div>
       ${g.items.map(it => {
-        const active = it.id === screen ? " is-active" : "";
+        const active = (exact ? navKey(it.href) === HERE : it.id === screen) ? " is-active" : "";
         let badgeVal = it.badge, quiet = it.badgeType === "quiet";
         if (it.id === "chat" && window.DATA?.chatThreads) { badgeVal = window.DATA.chatThreads.reduce((a, t) => a + (t.unread || 0), 0) || null; }
         const badge = badgeVal != null

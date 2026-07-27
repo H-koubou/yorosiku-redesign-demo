@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>回収申込登録｜あおぞら予ろシク（リデザイン提案）</title>
+<link rel="stylesheet" href="assets/styles.css">
+<meta name="theme-color" content="#0c2722">
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<style>
+  /* 希望日時グリッド（受入要望 #1）：週 × 30分刻み */
+  .wk { border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--surface); }
+  .wk-nav { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); background:var(--surface-2); }
+  .wk-nav .wk-label { font-weight:700; font-size:13.5px; flex:1; text-align:center; font-family:var(--mono); }
+  .wk-scroll { max-height:420px; overflow-y:auto; }
+  .wk-tbl { width:100%; border-collapse:separate; border-spacing:0; font-size:12.5px; }
+  .wk-tbl th, .wk-tbl td { border-bottom:1px solid var(--line); border-right:1px solid var(--line); text-align:center; }
+  .wk-tbl th:last-child, .wk-tbl td:last-child { border-right:0; }
+  .wk-tbl thead th { position:sticky; top:0; z-index:2; background:var(--surface-2); padding:8px 4px; font-weight:700; }
+  .wk-tbl thead th.sun { color:var(--bad-ink); } .wk-tbl thead th.sat { color:var(--brand-strong); }
+  .wk-tbl thead th .dw { display:block; font-size:10.5px; color:var(--muted); font-weight:600; }
+  .wk-tbl th.hh { position:sticky; left:0; z-index:1; background:var(--surface-2); font-family:var(--mono); font-weight:600;
+                  color:var(--ink-2); width:62px; padding:0 6px; }
+  .wk-tbl thead th.hh { z-index:3; }
+  .slot { padding:0; height:30px; }
+  .slot button { width:100%; height:30px; border:0; background:transparent; cursor:pointer; font-size:13px; font-weight:700; color:var(--brand); }
+  .slot button:hover:not(:disabled) { background:var(--brand-soft); }
+  .slot.few button { color:var(--warn-ink); }
+  .slot.ng button { color:var(--line-strong); cursor:not-allowed; }
+  .slot.is-sel { background:var(--brand); }
+  .slot.is-sel button { color:#fff; }
+  .wk-legend { display:flex; gap:14px; align-items:center; padding:9px 12px; border-top:1px solid var(--line); background:var(--surface-2); font-size:11.5px; color:var(--muted); }
+  .wk-legend b { font-size:13px; margin-right:3px; }
+  .wk-legend .ok b { color:var(--brand); } .wk-legend .few b { color:var(--warn-ink); } .wk-legend .ng b { color:var(--line-strong); }
+  /* 選択サマリー */
+  .sel-box { border:1px solid var(--brand); background:var(--brand-soft); border-radius:var(--r); padding:13px 15px; }
+  .sel-box .sel-ttl { font-size:11.5px; font-weight:700; color:var(--brand-ink); letter-spacing:.03em; margin-bottom:7px; }
+  .sel-box .sel-val { font-size:14px; font-weight:700; color:var(--ink); line-height:1.7; }
+  .sel-chip { display:inline-flex; align-items:center; gap:5px; background:var(--surface); border:1px solid var(--brand);
+              color:var(--brand-ink); border-radius:var(--r-pill); padding:3px 5px 3px 11px; font:600 12px/1.6 var(--mono); margin:0 6px 6px 0; }
+  .sel-chip button { border:0; background:transparent; cursor:pointer; color:var(--muted); font-size:14px; line-height:1; padding:0 3px; }
+  .rng-help { font-size:11.5px; color:var(--muted); line-height:1.7; }
+  .two { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:1100px){ .two { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="layout" data-app="aozora" data-screen="kadd" data-role="管理者"
+     data-company="株式会社あおぞら" data-title="回収申込登録" data-date="2026-06-24 (水)">
+  <main class="main"><div class="page">
+    <div class="page-head">
+      <h1 class="page-title">回収申込登録</h1>
+      <p class="page-sub">回収は「いつなら受けられるか」の幅で受け付けます。許容範囲を選んでから、必要に応じて希望の時間帯を指定してください。</p>
+    </div>
+
+    <div class="two">
+      <!-- 左：希望日時 -->
+      <div>
+        <div class="card card-pad" style="margin-bottom:18px">
+          <div class="card-head" style="padding:14px 16px"><b class="card-title">1. 許容範囲</b>
+            <span class="hint" style="margin-left:auto">お客様が「いつまでなら大丈夫か」を選びます</span></div>
+          <div class="card-body" style="padding:14px 16px">
+            <div class="seg" id="rangeSeg" style="flex-wrap:wrap">
+              <button class="is-active" data-r="day">終日いつでも可</button>
+              <button data-r="time">時間帯を指定</button>
+              <button data-r="span">期間内のどこか</button>
+              <button data-r="each">日ごとに指定</button>
+            </div>
+            <p class="rng-help" id="rangeHelp" style="margin-top:11px"></p>
+            <div class="flex" style="gap:12px;margin-top:13px">
+              <div class="field" style="flex:1"><label class="label">開始日</label><input class="input" type="date" id="fFrom" value="2026-06-26"></div>
+              <div class="field" style="flex:1" id="toWrap"><label class="label">終了日</label><input class="input" type="date" id="fTo" value="2026-06-30"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-pad" id="gridCard">
+          <div class="card-head" style="padding:14px 16px"><b class="card-title">2. 希望日時を選択</b>
+            <span class="hint" style="margin-left:auto">スクロールして希望の日時を選択（複数可）</span></div>
+          <div class="card-body" style="padding:14px 16px">
+            <div class="wk">
+              <div class="wk-nav">
+                <button class="btn btn-sm" id="prevW">← 前の一週間</button>
+                <span class="wk-label" id="wkLabel"></span>
+                <button class="btn btn-sm" id="nextW">次の一週間 →</button>
+              </div>
+              <div class="wk-scroll"><table class="wk-tbl"><thead id="wkHead"></thead><tbody id="wkBody"></tbody></table></div>
+              <div class="wk-legend">
+                <span class="ok"><b>○</b>空きあり</span><span class="few"><b>△</b>残りわずか</span><span class="ng"><b>×</b>受付不可</span>
+                <span style="margin-left:auto">工場の受入残から自動算出</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右：内容 -->
+      <div>
+        <div class="card card-pad" style="margin-bottom:18px">
+          <div class="card-head" style="padding:14px 16px"><b class="card-title">選択中の希望</b></div>
+          <div class="card-body" style="padding:14px 16px">
+            <div class="sel-box">
+              <div class="sel-ttl">許容範囲</div>
+              <div class="sel-val" id="selRange">—</div>
+              <div id="selSlots" style="margin-top:11px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="card-head" style="padding:14px 16px"><b class="card-title">3. 回収内容</b></div>
+          <div class="card-body" style="padding:14px 16px">
+            <div class="field" style="margin-bottom:13px"><label class="label">運搬業者 <span class="req">必須</span></label><select class="select" id="fCarrier"></select></div>
+            <div class="field" style="margin-bottom:13px"><label class="label">排出事業者 <span class="req">必須</span></label><select class="select" id="fEmitter"></select></div>
+            <div class="field" style="margin-bottom:13px"><label class="label">排出事業場</label><input class="input" id="fSite" placeholder="例：立川駅前再開発 B工区"></div>
+            <div class="field" style="margin-bottom:13px"><label class="label">品目 <span class="req">必須</span></label><select class="select" id="fItem"></select></div>
+            <div class="flex" style="gap:12px;margin-bottom:13px">
+              <div class="field" style="flex:1"><label class="label">車種</label><select class="select" id="fCar"></select></div>
+              <div class="field" style="width:100px"><label class="label">台数</label><input class="input num" id="fUnits" type="number" min="1" value="1"></div>
+            </div>
+            <div class="field"><label class="label">特記事項</label><textarea class="textarea" id="fNote" placeholder="例：現場入口が狭いため4tまで"></textarea></div>
+          </div>
+          <div class="card-body" style="padding:0 16px 16px">
+            <button class="btn btn-primary" style="width:100%" id="submitBtn">この内容で回収を申し込む</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></main>
+</div>
+<script src="assets/data.js"></script><script src="assets/app.js"></script>
+<script>
+(function () {
+  const TIMES = [];
+  for (let h = 8; h <= 17; h++) { TIMES.push(`${String(h).padStart(2,"0")}:00`); if (h !== 17) TIMES.push(`${String(h).padStart(2,"0")}:30`); }
+
+  const RANGE_HELP = {
+    day:  "その日であれば時間帯を問わず回収できる場合。時間の選択は不要です。",
+    time: "「◯時〜◯時まで大丈夫」のように、当日の受けられる時間帯が決まっている場合。グリッドで時間を選びます。",
+    span: "「◯日〜◯日までのどこかで」のように、日付に幅がある場合。時間の選択は不要です。",
+    each: "「◯日は◯時まで、◯日は◯時まで」のように、日ごとに条件が違う場合。日付ごとに時間を選びます。",
+  };
+  const needsGrid = r => r === "time" || r === "each";
+  const needsTo   = r => r === "span" || r === "each";
+
+  let range = "day";
+  let weekStart = "2026-06-22";          // 日曜始まり
+  const picked = new Set();               // "2026-06-26 13:00"
+
+  /* ---- 選択フォームの初期化 ---- */
+  const opt = (arr, sel) => arr.map(v => `<option ${v === sel ? "selected" : ""}>${v}</option>`).join("");
+  document.getElementById("fCarrier").innerHTML = `<option value="">選択してください</option>` + opt(DATA.carriers.map(c => c.name || c));
+  document.getElementById("fEmitter").innerHTML = `<option value="">選択してください</option>` + opt(DATA.emitters.map(c => c.name || c));
+  document.getElementById("fItem").innerHTML = `<option value="">選択してください</option>` +
+    DATA.items.filter(i => i.accept).map(i => `<option>${i.name}</option>`).join("");
+  document.getElementById("fCar").innerHTML = opt(DATA.vehicleTypes.map(v => v.name || v));
+
+  /* ---- 週グリッド ---- */
+  function renderWeek() {
+    const days = Array.from({ length: 7 }, (_, i) => UI.addDays(weekStart, i));
+    document.getElementById("wkLabel").textContent = `${UI.md(days[0])} 〜 ${UI.md(days[6])}`;
+    document.getElementById("wkHead").innerHTML = `<tr><th class="hh">日時</th>` + days.map(d => {
+      const dt = new Date(d + "T00:00:00"), dow = dt.getDay();
+      return `<th class="${dow === 0 ? "sun" : dow === 6 ? "sat" : ""}">${dt.getDate()}<span class="dw">${["日","月","火","水","木","金","土"][dow]}</span></th>`;
+    }).join("") + `</tr>`;
+
+    document.getElementById("wkBody").innerHTML = TIMES.map(t => `<tr><th class="hh">${t}</th>` + days.map(d => {
+      const st = UI.slot(d, t), key = `${d} ${t}`, sel = picked.has(key);
+      return `<td class="slot ${st}${sel ? " is-sel" : ""}">
+        <button type="button" data-k="${key}" ${st === "ng" ? "disabled" : ""}
+          aria-label="${UI.md(d)} ${t} ${st === "ng" ? "受付不可" : "選択"}">${UI.slotMark(st)}</button></td>`;
+    }).join("") + `</tr>`).join("");
+  }
+
+  document.getElementById("wkBody").addEventListener("click", e => {
+    const b = e.target.closest("button[data-k]"); if (!b || b.disabled) return;
+    const k = b.dataset.k;
+    picked.has(k) ? picked.delete(k) : picked.add(k);
+    renderWeek(); renderSummary();
+  });
+  document.getElementById("prevW").addEventListener("click", () => { weekStart = UI.addDays(weekStart, -7); renderWeek(); });
+  document.getElementById("nextW").addEventListener("click", () => { weekStart = UI.addDays(weekStart,  7); renderWeek(); });
+
+  /* ---- 許容範囲の切替 ---- */
+  function syncRange() {
+    document.getElementById("rangeHelp").textContent = RANGE_HELP[range];
+    document.getElementById("gridCard").style.display = needsGrid(range) ? "" : "none";
+    document.getElementById("toWrap").style.display = needsTo(range) ? "" : "none";
+    if (!needsGrid(range)) picked.clear();
+    if (!needsTo(range)) document.getElementById("fTo").value = document.getElementById("fFrom").value;
+    renderSummary();
+  }
+  document.getElementById("rangeSeg").addEventListener("click", e => {
+    const b = e.target.closest("button[data-r]"); if (!b) return;
+    document.querySelectorAll("#rangeSeg button").forEach(x => x.classList.remove("is-active"));
+    b.classList.add("is-active"); range = b.dataset.r; syncRange();
+  });
+  document.getElementById("fFrom").addEventListener("change", e => {
+    if (!needsTo(range)) document.getElementById("fTo").value = e.target.value;
+    renderSummary();
+  });
+  document.getElementById("fTo").addEventListener("change", renderSummary);
+
+  /* ---- 選択サマリー ---- */
+  function renderSummary() {
+    const from = document.getElementById("fFrom").value, to = document.getElementById("fTo").value;
+    const span = (!to || from === to) ? UI.md(from) : `${UI.md(from)} 〜 ${UI.md(to)}`;
+    document.getElementById("selRange").textContent = `${span}　${DATA.RANGE_LABEL[range]}`;
+
+    const list = [...picked].sort();
+    document.getElementById("selSlots").innerHTML = needsGrid(range)
+      ? (list.length
+          ? `<div class="sel-ttl">希望の時間（${list.length}枠）</div>` + list.map(k => {
+              const [d, t] = k.split(" ");
+              return `<span class="sel-chip">${UI.md(d)} ${t}<button type="button" data-x="${k}" aria-label="解除">×</button></span>`;
+            }).join("")
+          : `<div class="rng-help">グリッドから希望の時間を選んでください。</div>`)
+      : "";
+  }
+  document.getElementById("selSlots").addEventListener("click", e => {
+    const b = e.target.closest("button[data-x]"); if (!b) return;
+    picked.delete(b.dataset.x); renderWeek(); renderSummary();
+  });
+
+  /* ---- 申込 ---- */
+  document.getElementById("submitBtn").addEventListener("click", () => {
+    const g = id => document.getElementById(id).value.trim();
+    if (!g("fCarrier") || !g("fEmitter") || !g("fItem")) { toast("運搬業者・排出事業者・品目は必須です", "bad"); return; }
+    if (needsGrid(range) && !picked.size) { toast("希望の時間をグリッドから選択してください", "bad"); return; }
+
+    const list = [...picked].sort();
+    DATA.collectRes.unshift({
+      id: "k" + Date.now(), carrier: g("fCarrier"), emitter: g("fEmitter"), site: g("fSite") || "—",
+      waste: [g("fItem")], car: g("fCar"), units: Math.max(1, parseInt(g("fUnits") || "1", 10)),
+      range, from: g("fFrom"), to: g("fTo") || g("fFrom"),
+      slots: list.map(k => { const [d, t] = k.split(" "); return needsGrid(range) ? `${d.slice(5)} ${t}` : t; }),
+      note: g("fNote"), by: "あおぞら 管理者", at: "たった今", status: "new",
+    });
+    toast("回収申込を登録しました。回収申請一覧で承認できます", "ok");
+    setTimeout(() => { location.href = "aozora-apply.html?type=collect"; }, 900);
+  });
+
+  renderWeek(); syncRange();
+})();
+</script>
+</body></html>

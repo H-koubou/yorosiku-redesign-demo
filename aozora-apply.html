@@ -41,8 +41,8 @@
   <main class="main">
     <div class="page">
       <div class="page-head">
-        <h1 class="page-title">申請一覧</h1>
-        <p class="page-sub">運搬業者からの搬入申請を、処理すべき順に。クリックで詳細・承認。</p>
+        <h1 class="page-title" id="pgTitle">申請一覧</h1>
+        <p class="page-sub" id="pgSub">運搬業者からの搬入申請を、処理すべき順に。クリックで詳細・承認。</p>
       </div>
 
       <div class="stats" id="stats"></div>
@@ -60,7 +60,7 @@
         </span>
         <input class="input" id="textQ" style="max-width:220px" placeholder="運搬業者・予約者で検索" aria-label="検索">
         <select class="select" style="max-width:170px" aria-label="品目で絞り込み" id="wfilter"></select>
-        <a class="btn btn-primary" href="aozora-add.html"><span style="width:16px;height:16px;display:inline-flex"></span>新規搬入予約</a>
+        <a class="btn btn-primary" id="newBtn" href="aozora-add.html"><span style="width:16px;height:16px;display:inline-flex"></span>新規搬入予約</a>
         <button class="btn" id="excelBtn">Excel 出力</button>
       </div>
 
@@ -68,7 +68,7 @@
         <div class="table-wrap">
           <table class="tbl">
             <thead><tr>
-              <th>搬入予定</th><th>状態</th><th>運搬業者 / 排出事業者</th><th>排出事業場</th>
+              <th id="thWhen">搬入予定</th><th>状態</th><th>運搬業者 / 排出事業者</th><th>排出事業場</th>
               <th>品目</th><th>車種・台数</th><th>申請者 / 申請日時</th><th class="col-actions">操作</th>
             </tr></thead>
             <tbody id="rows"></tbody>
@@ -98,8 +98,38 @@
 <script src="assets/app.js"></script>
 <script>
 (function () {
-  const Q = DATA.applyQueue.map(r => ({ ...r }));
+  /* 予約種別（受入要望 #1）。carry=持込／collect=回収 */
+  const TYPE = window.RESV_TYPE === "collect" ? "collect" : "carry";
+  const T = TYPE === "collect"
+    ? { title:"回収申請一覧", sub:"運搬業者からの回収依頼を、処理すべき順に。希望日時は「いつなら受けられるか」の幅で届きます。", when:"希望日時（許容範囲）" }
+    : { title:"申請一覧",     sub:"運搬業者からの搬入申請を、処理すべき順に。クリックで詳細・承認。",                              when:"搬入予定" };
+
+  document.getElementById("pgTitle").textContent = T.title;
+  document.getElementById("pgSub").textContent = T.sub;
+  document.getElementById("thWhen").textContent = T.when;
+  document.querySelector(".layout").dataset.title = T.title;
+  if (TYPE === "collect") {
+    const nb = document.getElementById("newBtn");
+    nb.href = "aozora-collect-add.html"; nb.lastChild.textContent = "新規回収申込";
+  }
+
+  const Q = (TYPE === "collect" ? DATA.collectRes : DATA.applyQueue).map(r => ({ ...r }));
   let filter = "all";
+
+  // 回収は日時が範囲。持込は1点（日付＋AM/PM）
+  function whenCell(r) {
+    if (TYPE !== "collect") {
+      return `<div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div>`;
+    }
+    const span = r.from === r.to ? UI.md(r.from) : `${UI.md(r.from)} 〜 ${UI.md(r.to)}`;
+    const detail = r.slots.length ? r.slots.join("・") : DATA.RANGE_LABEL[r.range];
+    return `<div class="cell-stack"><span class="td-strong mono">${span}</span><span class="td-sub">${detail}</span></div>`;
+  }
+  function whenText(r) {
+    if (TYPE !== "collect") return `${r.date}（${r.ampm}）`;
+    const span = r.from === r.to ? UI.md(r.from) : `${UI.md(r.from)} 〜 ${UI.md(r.to)}`;
+    return `${span}　${r.slots.length ? r.slots.join("・") : DATA.RANGE_LABEL[r.range]}`;
+  }
 
   const wf = document.getElementById("wfilter");
   wf.innerHTML = `<option value="">品目（すべて）</option>` + DATA.WASTE.map(w => `<option>${w}</option>`).join("");
@@ -137,7 +167,7 @@
     const carInfo = `${r.car}<span class="td-sub"> ×${r.units}台${r.tatami ? ` ・畳${r.tatami}枚` : ""}</span>`;
     const dim = r.status === "fixed" ? ' style="opacity:.5"' : "";
     return `<tr data-id="${r.id}"${dim}>
-      <td><div class="t-when"><span class="when-date">${r.date.slice(5)}</span>${UI.ampm(r.ampm)}</div></td>
+      <td>${whenCell(r)}</td>
       <td>${UI.pill(r.status)}</td>
       <td><div class="cell-stack"><span class="td-strong">${r.carrier}</span><span class="td-sub">${r.emitter}</span></div></td>
       <td>${r.site}</td>
@@ -162,7 +192,11 @@
 
   function matches(r) {
     if (filter !== "all" && r.status !== filter) return false;
-    if (dateEl.value && r.date !== dateEl.value) return false;
+    if (dateEl.value) {
+      // 回収は許容範囲に指定日が含まれるかで判定（受入要望 #1・#3）
+      const hit = TYPE === "collect" ? (r.from <= dateEl.value && dateEl.value <= r.to) : (r.date === dateEl.value);
+      if (!hit) return false;
+    }
     const k = textEl.value.trim().toLowerCase();
     if (k && ![r.carrier, r.emitter, r.site, r.by].join(" ").toLowerCase().includes(k)) return false;
     return true;
@@ -188,9 +222,10 @@
     const r = Q.find(x => x.id === id); if (!r) return;
     r.status = "fixed";
     render();
-    toast(`${r.carrier} の ${r.date.slice(5)} ${r.ampm} 搬入を承認しました`, "ok");
-    if (window.BUS) BUS.post("approved", { carrier: r.carrier, date: r.date, ampm: r.ampm, waste: r.waste, car: r.car, units: r.units }); // → 同一端末の予約者タブへ
-    if (window.pushSend) pushSend("予約が承認されました", `${r.date.slice(5)} ${r.ampm}・${(r.waste||[]).join("・")} が確定しました。`, "hauler-book.html"); // → 実機(iPhone)へプッシュ
+    const label = whenText(r), verb = TYPE === "collect" ? "回収" : "搬入";
+    toast(`${r.carrier} の ${label} ${verb}を承認しました`, "ok");
+    if (TYPE !== "collect" && window.BUS) BUS.post("approved", { carrier: r.carrier, date: r.date, ampm: r.ampm, waste: r.waste, car: r.car, units: r.units }); // → 同一端末の予約者タブへ
+    if (window.pushSend) pushSend(`${verb}予約が承認されました`, `${label}・${(r.waste||[]).join("・")} が確定しました。`, "hauler-book.html"); // → 実機(iPhone)へプッシュ
   }
 
   function detail(r) {
@@ -202,7 +237,7 @@
       </div>
       <div class="drawer-body">
         <dl class="dl">
-          <dt>搬入予定</dt><dd class="mono">${r.date}（${r.ampm}）</dd>
+          <dt>${T.when}</dt><dd class="mono">${whenText(r)}</dd>
           <dt>排出事業者</dt><dd>${r.emitter}</dd>
           <dt>排出事業場</dt><dd>${r.site}</dd>
           <dt>産廃種類</dt><dd>${UI.waste(r.waste)}</dd>
@@ -255,6 +290,7 @@
 
   // 予約者アプリからの新着申請を即時反映（app.js が dispatch）
   document.addEventListener("apply-incoming", e => {
+    if (TYPE === "collect") return;   // 予約者アプリからの申請は持込のみ
     const p = e.detail;
     Q.unshift({ id: "a" + Date.now(), date: p.date, ampm: p.ampm, carrier: p.carrier, emitter: p.emitter || "—",
       site: p.site || "—", waste: p.waste || [], tatami: p.tatami || null, car: p.car, units: p.units, note: p.note || "", by: p.by || p.carrier, at: "たった今", status: "new" });
